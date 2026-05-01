@@ -31,7 +31,7 @@ export default function LandingPage() {
             {/* button */}
             <div className="text-2xl font- mt-10 self-end w-fit">
               <Link
-                href={"/login"}
+                href={"/signin"}
                 className="w-full bg-secondary/60 px-5 py-3 rounded-lg hover:bg-secondary duration-200 shadow-xl">
                 Sign In
               </Link>
