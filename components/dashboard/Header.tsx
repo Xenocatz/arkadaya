@@ -1,22 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Search, Bell, User, Menu } from "lucide-react";
 import NotificationPanel from "@/components/dashboard/NotificationPanel";
+import { useUserProfile } from "@/hook/useUserProfile";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
 }
+interface ProfileData {
+  nama: string;
+  role: string;
+}
+const defaultProfile: ProfileData = {
+  nama: "",
+  role: "",
+};
 
-/**
- * Komponen Header untuk navigasi bagian atas dashboard.
- * Berisi toggle sidebar, search bar, ikon notifikasi (dengan panel dropdown),
- * dan avatar profil pengguna.
- */
 const Header = ({ onToggleSidebar }: HeaderProps) => {
   // State untuk membuka/menutup panel notifikasi
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const { data: profileData } = useUserProfile();
+  const [profile, setProfile] = useState<ProfileData>(defaultProfile);
 
+  useEffect(() => {
+    if (profileData && "nama" in profileData) {
+      setProfile({
+        nama: profileData.nama ?? "",
+        role: profileData.role ?? "",
+      });
+    }
+  }, [profileData]);
   return (
     <>
       <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100 sticky top-0 z-30">
@@ -24,8 +39,7 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
         <div className="flex items-center">
           <button
             onClick={onToggleSidebar}
-            className="p-2 text-gray-500 hover:text-navy-900 hover:bg-gray-50 rounded-lg transition-all mr-4"
-          >
+            className="p-2 text-gray-500 hover:text-navy-900 hover:bg-gray-50 rounded-lg transition-all mr-4">
             <Menu className="w-6 h-6" />
           </button>
         </div>
@@ -48,25 +62,26 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
           <button
             onClick={() => setIsNotifOpen(true)}
             className="relative p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
-            title="Notifikasi"
-          >
+            title="Notifikasi">
             <Bell className="w-6 h-6" />
             {/* Badge merah penanda ada notifikasi baru */}
             <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full" />
           </button>
 
           {/* Avatar & Profil Pengguna */}
-          <div className="flex items-center space-x-3 cursor-pointer group">
+          <Link
+            href="/a-dashboard/profil"
+            className="flex items-center space-x-3 cursor-pointer group">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-navy-900 group-hover:text-blue-600 transition-colors">
-                Admin Logistik
+                {profile.nama}
               </p>
-              <p className="text-xs text-gray-500">Super Admin</p>
+              <p className="text-xs text-gray-500">{profile.role}</p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 border-2 border-white shadow-sm">
               <User className="w-6 h-6" />
             </div>
-          </div>
+          </Link>
         </div>
       </header>
 

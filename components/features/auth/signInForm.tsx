@@ -5,7 +5,7 @@ import { User, Phone, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
-import { checkForEmailAndRole, signInUser } from "@/utils/auth";
+import { checkForEmailAndRole, signInUser } from "@/service/auth.service";
 import { useRouter } from "next/navigation";
 
 export function SignInForm() {

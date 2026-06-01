@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Camera,
   Mail,
@@ -10,41 +10,73 @@ import {
   Save,
   User,
 } from "lucide-react";
-import { signOut } from "@/utils/auth";
+import { signOut } from "@/service/auth.service";
 import { useRouter } from "next/navigation";
+import { useUserProfile } from "@/hook/useUserProfile";
+import { updateUserProfile } from "@/service/profile.service";
+import { createClient } from "@/lib/supabase/client";
 
 // Data dummy profil pengguna
-const PROFIL_DATA = {
-  nama: "Admin Logistik",
-  email: "admin@arkadaya.co.id",
-  telepon: "+62 812-3456-7890",
-  alamat: "Jl. Raya Depok No. 88, Depok, Jawa Barat",
-  jabatan: "Super Admin",
-  divisi: "Operasional & Logistik",
-  bergabung: "01 Januari 2024",
-  idKaryawan: "ARK-EMP-001",
+interface PROFIL_DATA {
+  nama: string;
+  email: string;
+  no_hp: string;
+  role: string;
+}
+
+const DEFAULT_PROFIL: PROFIL_DATA = {
+  nama: "",
+  email: "",
+  no_hp: "",
+  role: "",
 };
 
-/**
- * Halaman Profil pengguna.
- * Menampilkan informasi akun dan form edit data diri.
- */
 export default function ProfilPage() {
   const router = useRouter();
+  const { data: profile } = useUserProfile();
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({ ...PROFIL_DATA });
+  const [form, setForm] = useState<PROFIL_DATA>(DEFAULT_PROFIL);
   const [saved, setSaved] = useState(false);
 
-  // Tangani perubahan input form
-  const handleChange = (field: keyof typeof form, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  useEffect(() => {
+    if (profile && "nama" in profile) {
+      setForm({
+        nama: profile.nama ?? "",
+        email: profile.email ?? "",
+        no_hp: profile.no_hp ?? "",
+        role: profile.role ?? "",
+      });
+    }
+  }, [profile]);
+
+  const handleChange = (field: keyof PROFIL_DATA, value: string) => {
+    setForm((prev) => ({ ...(prev ?? {}), [field]: value }) as PROFIL_DATA);
   };
 
-  // Simpan perubahan (simulasi)
-  const handleSave = () => {
-    setIsEditing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    try {
+      const response = await updateUserProfile(form.nama, form.no_hp);
+      const { success, profileData } = response as {
+        success: boolean;
+        profileData?: Partial<PROFIL_DATA>;
+      };
+
+      if (!success) {
+        throw new Error("Gagal memperbarui data");
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        nama: profileData?.nama ?? prev.nama,
+        no_hp: profileData?.no_hp ?? prev.no_hp,
+      }));
+
+      setIsEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   const handleLogout = async () => {
@@ -83,28 +115,10 @@ export default function ProfilPage() {
               </button>
             </div>
 
-            {/* Nama & Jabatan */}
+            {/* Nama */}
             <div>
-              <h2 className="text-xl font-bold text-gray-800">{form.nama}</h2>
-              <p className="text-sm text-blue-600 font-medium mt-1">
-                {form.jabatan}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">{form.divisi}</p>
-            </div>
-
-            {/* Badge ID Karyawan */}
-            <div className="bg-blue-50 border border-blue-100 rounded-full px-5 py-2">
-              <span className="text-xs font-semibold text-blue-700">
-                {form.idKaryawan}
-              </span>
-            </div>
-
-            {/* Tanggal bergabung */}
-            <div className="text-xs text-gray-400 pt-2 border-t border-gray-100 w-full text-center">
-              Bergabung sejak{" "}
-              <span className="font-medium text-gray-600">
-                {form.bergabung}
-              </span>
+              <h2 className="text-xl font-bold text-gray-800">{form?.nama}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{form?.role}</p>
             </div>
           </div>
         </div>
@@ -127,7 +141,16 @@ export default function ProfilPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      setForm({ ...PROFIL_DATA });
+                      if (profile && "nama" in profile) {
+                        setForm({
+                          nama: profile.nama ?? "",
+                          email: profile.email ?? "",
+                          no_hp: profile.no_hp ?? "",
+                          role: profile.role ?? "",
+                        });
+                      } else {
+                        setForm(DEFAULT_PROFIL);
+                      }
                       setIsEditing(false);
                     }}
                     className="text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-full px-5 py-2 transition-all">
@@ -161,7 +184,7 @@ export default function ProfilPage() {
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    value={form.nama}
+                    value={form?.nama}
                     onChange={(e) => handleChange("nama", e.target.value)}
                     disabled={!isEditing}
                     className={`w-full pl-10 pr-4 py-3 rounded-2xl text-sm border transition-all outline-none ${
@@ -182,14 +205,9 @@ export default function ProfilPage() {
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="email"
-                    value={form.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                    disabled={!isEditing}
-                    className={`w-full pl-10 pr-4 py-3 rounded-2xl text-sm border transition-all outline-none ${
-                      isEditing
-                        ? "border-blue-300 bg-white focus:ring-2 focus:ring-blue-100"
-                        : "border-gray-100 bg-gray-50 text-gray-700 cursor-default"
-                    }`}
+                    value={form?.email}
+                    disabled
+                    className={`w-full pl-10 pr-4 py-3 rounded-2xl text-sm border transition-all outline-none border-gray-100 bg-gray-50 text-gray-700 cursor-default`}
                   />
                 </div>
               </div>
@@ -203,29 +221,8 @@ export default function ProfilPage() {
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    value={form.telepon}
-                    onChange={(e) => handleChange("telepon", e.target.value)}
-                    disabled={!isEditing}
-                    className={`w-full pl-10 pr-4 py-3 rounded-2xl text-sm border transition-all outline-none ${
-                      isEditing
-                        ? "border-blue-300 bg-white focus:ring-2 focus:ring-blue-100"
-                        : "border-gray-100 bg-gray-50 text-gray-700 cursor-default"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Jabatan */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Jabatan
-                </label>
-                <div className="relative">
-                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={form.jabatan}
-                    onChange={(e) => handleChange("jabatan", e.target.value)}
+                    value={form?.no_hp}
+                    onChange={(e) => handleChange("no_hp", e.target.value)}
                     disabled={!isEditing}
                     className={`w-full pl-10 pr-4 py-3 rounded-2xl text-sm border transition-all outline-none ${
                       isEditing
@@ -237,11 +234,11 @@ export default function ProfilPage() {
               </div>
 
               {/* Alamat — full width */}
-              <div className="space-y-1.5 sm:col-span-2">
+              {/* <div className="space-y-1.5 sm:col-span-2">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Alamat
-                </label>
-                <div className="relative">
+                </label> */}
+              {/* <div className="relative">
                   <MapPin className="absolute left-4 top-3.5 w-4 h-4 text-gray-400" />
                   <textarea
                     value={form.alamat}
@@ -254,8 +251,8 @@ export default function ProfilPage() {
                         : "border-gray-100 bg-gray-50 text-gray-700 cursor-default"
                     }`}
                   />
-                </div>
-              </div>
+                </div> */}
+              {/* </div> */}
             </div>
           </div>
 

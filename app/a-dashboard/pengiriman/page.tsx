@@ -85,7 +85,24 @@ export default function PengirimanPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-5xl font-extrabold text-blue-900 tracking-tight">Pengiriman</h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-5xl font-extrabold text-blue-900 tracking-tight">
+            Pengiriman
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Kelola data pengiriman dan tambahkan data baru dari sini.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-yellow-400 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-yellow-500"
+          title="Tambah Pengiriman">
+          <Plus className="h-4 w-4" />
+          Tambah Pengiriman
+        </button>
+      </div>
 
       {/* Panel Filter */}
       <div className="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
@@ -178,16 +195,6 @@ export default function PengirimanPage() {
           </table>
         </div>
 
-        {/* FAB Tambah — membuka modal */}
-        <div className="flex justify-end px-6 py-4 border-t border-gray-100">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="w-12 h-12 bg-yellow-400 hover:bg-yellow-500 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-            title="Tambah Pengiriman"
-          >
-            <Plus className="w-6 h-6 text-white" />
-          </button>
-        </div>
       </div>
 
       {/* ===== Modal Tambah Pengiriman Baru ===== */}

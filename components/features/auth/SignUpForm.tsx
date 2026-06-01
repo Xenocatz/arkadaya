@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { User, Phone, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { addUserProfiles, signUpNewUser } from "@/utils/auth";
+import { addUserProfiles, signUpNewUser } from "@/service/auth.service";
 
 export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
