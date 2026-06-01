@@ -13,6 +13,9 @@
   --color-primary: #0070d8;
   --color-dark-primary: #003b72;
   --color-secondary: #025eb3;
+  --color-navy-900: #0a192f;
+  --color-navy-800: #112240;
+  --color-navy-700: #1b2a4e;
 }
 
 /* @media (prefers-color-scheme: dark) {

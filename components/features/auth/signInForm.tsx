@@ -5,14 +5,57 @@ import { User, Phone, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import { checkForEmailAndRole, signInUser } from "@/utils/auth";
+import { useRouter } from "next/navigation";
 
 export function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log("Form submitted");
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      // cek email berdasarkan name
+      const checkEmailResult = await checkForEmailAndRole(
+        data.name.toString().trim(),
+      );
+
+      if (!checkEmailResult.success) {
+        throw new Error(checkEmailResult.error);
+      }
+
+      const email = checkEmailResult.data?.email;
+      const role = checkEmailResult.data?.role;
+
+      if (!email) {
+        throw new Error("Email not found");
+      }
+
+      // send signIn data to supabase
+      const signUpResult = await signInUser(
+        email as string,
+        data.password as string,
+      );
+
+      if (!signUpResult.success) {
+        throw new Error(signUpResult.error);
+      }
+
+      switch (role) {
+        case "admin":
+          router.push("/a-dashboard");
+          break;
+        case "user":
+          router.push("/u-dashboard");
+      }
+    } catch (err) {
+      console.error("gagal signIn: ", err);
+    }
   };
 
   return (
@@ -22,11 +65,18 @@ export function SignInForm() {
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Input type="text" placeholder="Name" icon={User} required />
+        <Input
+          type="text"
+          placeholder="Name"
+          name="name"
+          icon={User}
+          required
+        />
 
         <Input
           type={showPassword ? "text" : "password"}
           placeholder="Password"
+          name="password"
           icon={Lock}
           iconRight={showPassword ? Eye : EyeOff}
           onIconRightClick={() => setShowPassword(!showPassword)}
