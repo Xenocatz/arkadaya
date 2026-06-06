@@ -9,41 +9,46 @@ import {
   Legend,
 } from "recharts";
 
-// Data untuk chart donut
-const DATA_CHART = [
-  { name: "Selesai", value: 45, color: "#22c55e" }, // Green
-  { name: "Dalam Pengiriman", value: 30, color: "#3b82f6" }, // Blue
-  { name: "Terkirim", value: 20, color: "#eab308" }, // Yellow
-  { name: "Pending", value: 5, color: "#ec4899" }, // Pink
-];
+interface AnalyticsChartItem {
+  name: string;
+  value: number;
+  color: string;
+}
 
-/**
- * Komponen AnalyticsChart untuk menampilkan grafik donut statistik.
- * Menggunakan library recharts.
- */
-const AnalyticsChart = () => {
+interface AnalyticsChartProps {
+  data: AnalyticsChartItem[];
+  total: number;
+  efficiency: string;
+}
+
+const AnalyticsChart = ({
+  data,
+  total,
+  efficiency,
+}: AnalyticsChartProps) => {
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-50 flex flex-col h-full">
+    <div className="flex h-full flex-col rounded-3xl border border-gray-50 bg-white p-6 shadow-sm">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-navy-900">Analisis Pengiriman</h2>
         <p className="text-sm text-gray-500">
-          Persentase status pengiriman bulan ini
+          Persentase status pengiriman saat ini
         </p>
       </div>
 
-      <div className="flex-1 min-h-75 w-full">
+      <div className="min-h-75 w-full flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={DATA_CHART}
+              data={data}
               cx="50%"
               cy="50%"
               innerRadius={70}
               outerRadius={100}
               paddingAngle={5}
-              dataKey="value">
-              {DATA_CHART.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+              dataKey="value"
+            >
+              {data.map((entry) => (
+                <Cell key={entry.name} fill={entry.color} />
               ))}
             </Pie>
             <Tooltip
@@ -67,18 +72,18 @@ const AnalyticsChart = () => {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 border-t border-gray-100 pt-6">
         <div className="text-center">
-          <p className="text-xs text-gray-400 uppercase font-semibold">
+          <p className="text-xs font-semibold uppercase text-gray-400">
             Total Paket
           </p>
-          <p className="text-xl font-bold text-navy-900">1,284</p>
+          <p className="text-xl font-bold text-navy-900">{total}</p>
         </div>
-        <div className="text-center border-l border-gray-100">
-          <p className="text-xs text-gray-400 uppercase font-semibold">
+        <div className="border-l border-gray-100 text-center">
+          <p className="text-xs font-semibold uppercase text-gray-400">
             Efisiensi
           </p>
-          <p className="text-xl font-bold text-green-600">+12.5%</p>
+          <p className="text-xl font-bold text-green-600">{efficiency}</p>
         </div>
       </div>
     </div>

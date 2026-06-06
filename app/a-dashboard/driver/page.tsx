@@ -12,18 +12,11 @@ import {
   X,
   PencilLine,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { updateDriverProfile } from "@/service/driver.service";
-
-interface DriverProfile {
-  id: string;
-  nama: string | null;
-  email: string | null;
-  no_hp: string | null;
-  role: string | null;
-}
-
-const supabase = createClient();
+import {
+  getDriverProfiles,
+  updateDriverProfile,
+  type DriverProfile,
+} from "@/service/driver.service";
 
 export default function DriverPage() {
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
@@ -48,25 +41,46 @@ export default function DriverPage() {
     setIsLoading(true);
     setError("");
 
-    const { data, error: fetchError } = await supabase
-      .from("profiles")
-      .select("id, nama, email, no_hp, role")
-      .eq("role", "driver")
-      .order("nama", { ascending: true });
+    const result = await getDriverProfiles();
 
-    if (fetchError) {
-      setError(fetchError.message);
+    if (!result.success) {
+      setError(result.error ?? "Gagal memuat data driver");
       setDrivers([]);
       setIsLoading(false);
       return;
     }
 
-    setDrivers(data ?? []);
+    setDrivers(result.data);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    void fetchDrivers();
+    let isMounted = true;
+
+    const loadDrivers = async () => {
+      const result = await getDriverProfiles();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!result.success) {
+        setError(result.error ?? "Gagal memuat data driver");
+        setDrivers([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setError("");
+      setDrivers(result.data);
+      setIsLoading(false);
+    };
+
+    void loadDrivers();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredDrivers = drivers.filter((driver) => {

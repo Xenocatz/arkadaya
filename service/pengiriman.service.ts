@@ -1,5 +1,3 @@
-"use client";
-
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -87,7 +85,6 @@ function getSortTimestamp(row: PengirimanRow) {
 
 export async function getPengirimanList() {
   const { data, error } = await supabase.from("pengiriman").select("*");
-  console.log(data);
 
   if (error) {
     console.error("Supabase fetch error:", error.message);

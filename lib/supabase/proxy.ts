@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -44,14 +45,13 @@ export async function updateSession(request: NextRequest) {
 
   const user = data?.claims;
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  const isDashboardRoute =
+    pathname.startsWith("/a-dashboard") || pathname.startsWith("/u-dashboard");
+
+  if (!user && isDashboardRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/signin";
+    url.searchParams.set("redirectedFrom", pathname);
     return NextResponse.redirect(url);
   }
 

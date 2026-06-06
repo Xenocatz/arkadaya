@@ -2,10 +2,40 @@ import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
 
+export interface DriverProfile {
+  id: string;
+  nama: string | null;
+  email: string | null;
+  no_hp: string | null;
+  role: string | null;
+}
+
 export interface DriverProfileInput {
   nama: string;
   email: string;
   no_hp: string;
+}
+
+export async function getDriverProfiles() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, nama, email, no_hp, role")
+    .eq("role", "driver")
+    .order("nama", { ascending: true });
+
+  if (error) {
+    console.error("Supabase fetch error:", error.message);
+    return {
+      success: false,
+      error: error.message,
+      data: [] as DriverProfile[],
+    };
+  }
+
+  return {
+    success: true,
+    data: (data ?? []) as DriverProfile[],
+  };
 }
 
 export async function addDriverProfile({
