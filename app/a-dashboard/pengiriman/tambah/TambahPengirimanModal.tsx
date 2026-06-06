@@ -1,0 +1,223 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { ArrowLeft, Phone, Save } from "lucide-react";
+import Modal from "@/components/ui/Modal";
+import { addPengiriman, type PengirimanInput } from "@/service/pengiriman.service";
+
+const FORM_KOSONG: PengirimanInput = {
+  noResi: "",
+  namaPengirim: "",
+  noTelpPengirim: "",
+  vendor: "",
+  driver: "",
+  namaPenerima: "",
+  noTelpPenerima: "",
+  alamat: "",
+};
+
+interface TambahPengirimanModalProps {
+  onClose: () => void;
+  onSaved: () => Promise<void> | void;
+}
+
+export default function TambahPengirimanModal({
+  onClose,
+  onSaved,
+}: TambahPengirimanModalProps) {
+  const [form, setForm] = useState<PengirimanInput>(FORM_KOSONG);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (field: keyof PengirimanInput, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setError("");
+
+    try {
+      const result = await addPengiriman({
+        noResi: form.noResi.trim(),
+        namaPengirim: form.namaPengirim.trim(),
+        noTelpPengirim: form.noTelpPengirim.trim(),
+        vendor: form.vendor.trim(),
+        driver: form.driver.trim(),
+        namaPenerima: form.namaPenerima.trim(),
+        noTelpPenerima: form.noTelpPenerima.trim(),
+        alamat: form.alamat.trim(),
+      });
+
+      if (!result.success) {
+        throw new Error(result.error ?? "Gagal menambahkan pengiriman");
+      }
+
+      await onSaved();
+      setForm(FORM_KOSONG);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const inputClass =
+    "w-full rounded-xl border border-blue-300 px-4 py-3 text-sm text-gray-700 placeholder-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-200";
+
+  return (
+    <Modal title="Tambah Pengiriman Baru" onClose={onClose} size="lg">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute left-5 top-5 rounded-full p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-700"
+        title="Kembali">
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-800">
+                No. Resi
+              </label>
+              <input
+                type="text"
+                value={form.noResi}
+                onChange={(e) => handleChange("noResi", e.target.value)}
+                required
+                className={inputClass}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-800">
+                Nama Pengirim
+              </label>
+              <input
+                type="text"
+                value={form.namaPengirim}
+                onChange={(e) => handleChange("namaPengirim", e.target.value)}
+                required
+                className={inputClass}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center overflow-hidden rounded-xl border border-blue-300 transition-all focus-within:ring-2 focus-within:ring-blue-200">
+                <span className="whitespace-nowrap border-r border-blue-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-600">
+                  No.Telp
+                </span>
+                <div className="flex flex-1 items-center pl-3">
+                  <Phone className="mr-2 h-4 w-4 flex-shrink-0 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={form.noTelpPengirim}
+                    onChange={(e) =>
+                      handleChange("noTelpPengirim", e.target.value)
+                    }
+                    required
+                    className="w-full bg-transparent py-3 pr-4 text-sm text-gray-700 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-800">
+                Vendor
+              </label>
+              <input
+                type="text"
+                value={form.vendor}
+                onChange={(e) => handleChange("vendor", e.target.value)}
+                required
+                className={inputClass}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-800">
+                Driver
+              </label>
+              <input
+                type="text"
+                value={form.driver}
+                onChange={(e) => handleChange("driver", e.target.value)}
+                required
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-800">
+                Nama Penerima
+              </label>
+              <input
+                type="text"
+                value={form.namaPenerima}
+                onChange={(e) => handleChange("namaPenerima", e.target.value)}
+                required
+                className={inputClass}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center overflow-hidden rounded-xl border border-blue-300 transition-all focus-within:ring-2 focus-within:ring-blue-200">
+                <span className="whitespace-nowrap border-r border-blue-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-600">
+                  No.Telp
+                </span>
+                <div className="flex flex-1 items-center pl-3">
+                  <Phone className="mr-2 h-4 w-4 flex-shrink-0 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={form.noTelpPenerima}
+                    onChange={(e) =>
+                      handleChange("noTelpPenerima", e.target.value)
+                    }
+                    required
+                    className="w-full bg-transparent py-3 pr-4 text-sm text-gray-700 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-800">
+                Alamat
+              </label>
+              <textarea
+                value={form.alamat}
+                onChange={(e) => handleChange("alamat", e.target.value)}
+                rows={5}
+                required
+                className="w-full resize-none rounded-xl border border-blue-300 px-4 py-3 text-sm text-gray-700 placeholder-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+          </div>
+        </div>
+
+        {error ? (
+          <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex justify-end">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-10 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-70">
+            <Save className="h-4 w-4" />
+            {isSaving ? "Menyimpan..." : "Save"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
