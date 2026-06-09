@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
+
+export interface AuthProfile {
+  nama: string;
+  email: string;
+  no_hp: string;
+  role: string;
+}
 export async function signUpNewUser(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -76,4 +83,32 @@ export async function signOut() {
   }
 
   return { success: true };
+}
+
+export async function getCurrentAuthProfile() {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError) {
+    console.error("Supabase Auth Error:", authError.message);
+    return { success: false, error: authError.message };
+  }
+
+  const email = authData.user?.email;
+
+  if (!email) {
+    return { success: false, error: "No active user session" };
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("nama, email, no_hp, role")
+    .eq("email", email)
+    .single<AuthProfile>();
+
+  if (error) {
+    console.error("Supabase select error:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data };
 }

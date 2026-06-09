@@ -1,29 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
-import { User, Phone, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { useState } from "react";
 import Link from "next/link";
-import { checkForEmailAndRole, signInUser } from "@/service/auth.service";
+import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { checkForEmailAndRole, signInUser } from "@/service/auth.service";
 
-export function SignInForm() {
+interface SignInFormProps {
+  mobile?: boolean;
+}
+
+export function SignInForm({ mobile = false }: SignInFormProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage("");
 
-    const form = e.currentTarget;
+    const form = event.currentTarget;
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
     try {
-      // cek email berdasarkan name
-      const checkEmailResult = await checkForEmailAndRole(
-        data.name.toString().trim(),
-      );
+      const checkEmailResult = await checkForEmailAndRole(data.name.toString().trim());
 
       if (!checkEmailResult.success) {
         throw new Error(checkEmailResult.error);
@@ -33,17 +38,13 @@ export function SignInForm() {
       const role = checkEmailResult.data?.role;
 
       if (!email) {
-        throw new Error("Email not found");
+        throw new Error("Email tidak ditemukan.");
       }
 
-      // send signIn data to supabase
-      const signUpResult = await signInUser(
-        email as string,
-        data.password as string,
-      );
+      const signInResult = await signInUser(email, data.password as string);
 
-      if (!signUpResult.success) {
-        throw new Error(signUpResult.error);
+      if (!signInResult.success) {
+        throw new Error(signInResult.error);
       }
 
       switch (role) {
@@ -52,26 +53,96 @@ export function SignInForm() {
           break;
         case "user":
           router.push("/u-dashboard");
+          break;
+        default:
+          router.push("/u-dashboard");
       }
-    } catch (err) {
-      console.error("gagal signIn: ", err);
+    } catch (error) {
+      console.error("gagal signIn: ", error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Login gagal. Silakan coba lagi.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  if (mobile) {
+    return (
+      <div className="w-full px-7 pb-8">
+        <form onSubmit={handleSubmit} className="animate-slide-up flex h-full flex-col justify-between space-y-6">
+          <div className="space-y-5">
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5 text-[#0a315c]">
+                <User size={26} strokeWidth={2} />
+              </div>
+              <input
+                type="text"
+                name="name"
+                required
+                placeholder="Name"
+                className="h-[62px] w-full rounded-[16px] border-[1.5px] border-[#0a315c] bg-[#d9e7f5] pl-14 pr-6 text-base font-medium text-[#0a315c] outline-none placeholder:text-[#0a315c]/50"
+              />
+            </div>
+
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5 text-[#0a315c]">
+                <Lock size={26} strokeWidth={2} />
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                required
+                placeholder="Password"
+                className="h-[62px] w-full rounded-[16px] border-[1.5px] border-[#0a315c] bg-[#d9e7f5] pl-14 pr-12 text-base font-medium text-[#0a315c] outline-none placeholder:text-[#0a315c]/50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 flex items-center pr-5 text-[#0a315c]/70 transition-colors hover:text-[#0a315c]"
+              >
+                {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+              </button>
+            </div>
+
+            <div className="pt-1 text-center">
+              <span className="text-[11px] font-normal text-[#7a8c9e] transition-colors hover:text-[#0a315c]">
+                Forgot Password?
+              </span>
+            </div>
+
+            {errorMessage ? (
+              <p className="px-1 text-center text-sm font-semibold text-red-500">{errorMessage}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-6 pt-6">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex h-[60px] w-full items-center justify-center rounded-[16px] border-[1.5px] border-[#0a315c] bg-[#5091cd] text-[20px] font-semibold text-white transition-all active:scale-[0.99] disabled:opacity-50"
+            >
+              {isSubmitting ? "Signing In..." : "Sign In"}
+            </button>
+
+            <div className="text-center text-[12px] font-normal text-[#7a8c9e]">
+              {"Haven't any account? "}
+              <Link href="/signup" className="transition-colors hover:text-[#0a315c] hover:underline">
+                Create an account
+              </Link>
+            </div>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-md mx-auto">
-      <h2 className="text-4xl font-bold text-[#0a2d5e] mb-12 text-center ">
-        Sign In
-      </h2>
+    <div className="mx-auto w-full max-w-md">
+      <h2 className="mb-12 text-center text-4xl font-bold text-[#0a2d5e]">Sign In</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Input
-          type="text"
-          placeholder="Name"
-          name="name"
-          icon={User}
-          required
-        />
+        <Input type="text" placeholder="Name" name="name" icon={User} required />
 
         <Input
           type={showPassword ? "text" : "password"}
@@ -82,20 +153,27 @@ export function SignInForm() {
           onIconRightClick={() => setShowPassword(!showPassword)}
           required
         />
+
         <div className="flex justify-end">
-          <span className=" text-sm text-black/50 cursor-pointer hover:text-black">
+          <span className="cursor-pointer text-sm text-black/50 hover:text-black">
             Forgot Password?
           </span>
         </div>
 
+        {errorMessage ? (
+          <p className="text-sm font-semibold text-red-500">{errorMessage}</p>
+        ) : null}
+
         <div className="flex justify-end pt-4">
-          <Button type="submit">Sign In</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Signing In..." : "Sign In"}
+          </Button>
         </div>
 
         <div className="flex justify-center pt-4">
-          <span className=" text-sm text-black/50">
-            Have’nt any account?{" "}
-            <Link href={"/signup"} className="cursor-pointer hover:text-black">
+          <span className="text-sm text-black/50">
+            Have&apos;nt any account?{" "}
+            <Link href="/signup" className="cursor-pointer hover:text-black">
               Create an account
             </Link>
           </span>
