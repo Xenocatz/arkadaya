@@ -3,9 +3,6 @@
 import { useEffect } from "react";
 import { X, Truck } from "lucide-react";
 
-// Tipe status aksi notifikasi
-type AksiNotif = "Pay Now" | "Paid";
-
 // Interface data notifikasi
 interface Notifikasi {
   id: string;

@@ -13,7 +13,7 @@ export default function ShippingDetailsPage() {
   const { data, isLoading, isError } = useCustomerDashboard();
   const order = data?.orders.find((item) => item.receiptNumber === receiptNumber) ?? null;
   const unreadNotificationCount =
-    data?.notifications.filter((item) => item.status === "picked_up" && !item.isPaid).length ?? 0;
+    data?.notifications.filter((item) => item.status === "picked_up").length ?? 0;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-0 sm:p-4 md:p-8">

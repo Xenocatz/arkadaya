@@ -6,5 +6,4 @@ export const CUSTOMER_ROUTES = {
   notification: "/u-dashboard/notification",
   profile: "/u-dashboard/profile",
   shippingDetails: "/u-dashboard/shipping-details",
-  pembayaran: "/u-dashboard/pembayaran",
 } as const;

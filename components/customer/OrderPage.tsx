@@ -47,7 +47,7 @@ export default function OrderPage() {
   const [searchedOrder, setSearchedOrder] = useState<CustomerOrder | null>(null);
 
   const unreadNotificationCount =
-    data?.notifications.filter((item) => item.status === "picked_up" && !item.isPaid).length ?? 0;
+    data?.notifications.filter((item) => item.status === "picked_up").length ?? 0;
 
   const handleTrackSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -243,14 +243,12 @@ export default function OrderPage() {
                     <div className="absolute right-5 top-5">
                       <span
                         className={`text-xs font-bold ${
-                          order.isPaid
-                            ? "text-emerald-500"
-                            : order.status === "On Progress"
-                              ? "text-amber-500"
-                              : "text-slate-500"
+                          order.status === "On Progress"
+                            ? "text-amber-500"
+                            : "text-emerald-500"
                         }`}
                       >
-                        {order.isPaid ? "Paid" : order.statusLabel}
+                        {order.statusLabel}
                       </span>
                     </div>
 
@@ -350,42 +348,13 @@ export default function OrderPage() {
               </div>
 
               <div className="mb-6 flex items-center justify-between border-y border-slate-100 py-4">
-                <span className="text-base font-black text-[#05336b]">Total Tagihan</span>
-                <span className="text-base font-black text-[#05336b]">{selectedOrder.amount}</span>
-              </div>
-
-              <div className="mb-8 text-center">
-                {selectedOrder.isPaid ? (
-                  <span className="text-3xl font-black tracking-wider text-emerald-500">Paid</span>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <span className="mb-1 text-3xl font-black tracking-wider text-red-500">
-                      Unpaid
-                    </span>
-                    <p className="text-[10px] font-bold leading-none text-red-400">
-                      {selectedOrder.dueDate
-                        ? `Payment due soon. Complete your payment before ${selectedOrder.dueDate}.`
-                        : "Status pembayaran belum lunas."}
-                    </p>
-                  </div>
-                )}
+                <span className="text-base font-black text-[#05336b]">Estimasi Sampai</span>
+                <span className="text-right text-sm font-bold text-[#05336b]">
+                  {selectedOrder.estimatedArrival ?? "Belum tersedia"}
+                </span>
               </div>
 
               <div className="space-y-3.5">
-                {!selectedOrder.isPaid ? (
-                  <button
-                    onClick={() =>
-                      router.push(
-                        `${CUSTOMER_ROUTES.pembayaran}?resi=${encodeURIComponent(
-                          selectedOrder.receiptNumber,
-                        )}`,
-                      )
-                    }
-                    className="flex h-13 w-full items-center justify-center rounded-full border border-emerald-700 bg-emerald-600 text-base font-bold text-white shadow-sm transition-all duration-300 hover:bg-emerald-700 active:scale-[0.98]"
-                  >
-                    Payment
-                  </button>
-                ) : null}
                 <button
                   onClick={() =>
                     router.push(

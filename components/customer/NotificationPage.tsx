@@ -101,16 +101,12 @@ export default function NotificationPage() {
                 </div>
 
                 <div className="absolute bottom-5 right-5 text-right">
-                  {notif.status === "picked_up" && !notif.isPaid ? (
-                    <Link
-                      href={`${CUSTOMER_ROUTES.pembayaran}?resi=${encodeURIComponent(notif.receiptNumber)}`}
-                      className="text-xs font-bold text-red-500 transition-all hover:underline"
-                    >
-                      Pay Now
-                    </Link>
-                  ) : (
-                    <span className="text-xs font-bold text-green-500">Paid</span>
-                  )}
+                  <Link
+                    href={`${CUSTOMER_ROUTES.shippingDetails}?resi=${encodeURIComponent(notif.receiptNumber)}`}
+                    className="text-xs font-bold text-[#05336b] transition-all hover:underline"
+                  >
+                    Lihat Detail
+                  </Link>
                 </div>
               </div>
             ))}

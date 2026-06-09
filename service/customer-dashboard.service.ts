@@ -13,10 +13,6 @@ interface CustomerProfile {
 interface DetailPengirimanRow {
   id_detail_pengiriman?: number | null;
   id_pengiriman?: number | null;
-  total_tagihan?: number | string | null;
-  is_paid?: boolean | null;
-  status_pembayaran?: NullableString;
-  due_date?: NullableString;
   estimasi_sampai?: NullableString;
   picked_up_at?: NullableString;
   in_transit_at?: NullableString;
@@ -71,11 +67,6 @@ export interface CustomerOrder {
   date: string;
   status: "On Progress" | "Delivered";
   statusLabel: string;
-  amount: string;
-  amountValue: number | null;
-  isPaid: boolean;
-  paymentLabel: string;
-  dueDate: string | null;
   estimatedArrival: string | null;
   goodsReceiptUrl: string | null;
   deliveryInvoiceUrl: string | null;
@@ -94,7 +85,6 @@ export interface CustomerNotification {
   receiptNumber: string;
   recipient: string;
   status: "picked_up" | "delivered";
-  isPaid: boolean;
 }
 
 export interface CustomerDashboardData {
@@ -143,39 +133,6 @@ function normalizeShipmentStatus(status?: NullableString) {
   };
 }
 
-function toNumber(value?: number | string | null) {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value
-    .replace(/[^\d,-]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
-  const parsed = Number(normalized);
-
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function formatRupiah(value?: number | string | null) {
-  const amount = toNumber(value);
-
-  if (amount === null) {
-    return "Nominal belum tersedia";
-  }
-
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
 function formatDate(value?: NullableString) {
   if (!value) return "-";
 
@@ -189,22 +146,6 @@ function formatDate(value?: NullableString) {
     weekday: "long",
     day: "2-digit",
     month: "long",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatDateShort(value?: NullableString) {
-  if (!value) return null;
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "2-digit",
     year: "numeric",
   }).format(date);
 }
@@ -240,36 +181,6 @@ function formatTimelineTime(value?: NullableString) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
-}
-
-function isPaidOrder(detail?: DetailPengirimanRow | null) {
-  if (typeof detail?.is_paid === "boolean") {
-    return detail.is_paid;
-  }
-
-  const paymentStatus = normalizeText(detail?.status_pembayaran);
-  return paymentStatus === "paid" || paymentStatus === "lunas";
-}
-
-function normalizePaymentLabel(
-  detail?: DetailPengirimanRow | null,
-  isPaid?: boolean,
-) {
-  if (isPaid) {
-    return "Paid";
-  }
-
-  const paymentStatus = normalizeText(detail?.status_pembayaran);
-
-  if (paymentStatus === "failed") {
-    return "Failed";
-  }
-
-  if (paymentStatus === "expired") {
-    return "Expired";
-  }
-
-  return "Unpaid";
 }
 
 function getSortTimestamp(row: PengirimanRow) {
@@ -380,7 +291,6 @@ function mapOrder(row: PengirimanRow): CustomerOrder {
   const detail = getDetailRow(row);
   const trackingRows = row.tracking_pengiriman ?? [];
   const shipmentStatus = normalizeShipmentStatus(row.status);
-  const paid = isPaidOrder(detail);
 
   return {
     id: String(row.id_pengiriman ?? row.no_resi ?? "-"),
@@ -396,11 +306,6 @@ function mapOrder(row: PengirimanRow): CustomerOrder {
     date: formatDate(row.created_at),
     status: shipmentStatus.status,
     statusLabel: shipmentStatus.label,
-    amount: formatRupiah(detail?.total_tagihan ?? null),
-    amountValue: toNumber(detail?.total_tagihan ?? null),
-    isPaid: paid,
-    paymentLabel: normalizePaymentLabel(detail, paid),
-    dueDate: formatDateShort(detail?.due_date),
     estimatedArrival: formatDateTime(detail?.estimasi_sampai),
     goodsReceiptUrl: detail?.goods_receipt_url ?? null,
     deliveryInvoiceUrl: detail?.delivery_invoice_url ?? null,
@@ -438,7 +343,6 @@ function buildNotifications(
       receiptNumber: order.receiptNumber,
       recipient: order.recipient,
       status: isDelivered ? "delivered" : "picked_up",
-      isPaid: order.isPaid,
     };
   });
 }
@@ -502,10 +406,6 @@ export async function getCustomerDashboardData(): Promise<CustomerDashboardData>
       detail_pengiriman (
         id_detail_pengiriman,
         id_pengiriman,
-        total_tagihan,
-        is_paid,
-        status_pembayaran,
-        due_date,
         estimasi_sampai,
         picked_up_at,
         in_transit_at,
@@ -544,35 +444,4 @@ export async function getCustomerDashboardData(): Promise<CustomerDashboardData>
     orders,
     notifications: buildNotifications(orders, filteredRows),
   };
-}
-
-export async function updateCustomerOrderPaymentStatus(receiptNumber: string) {
-  const { data, error } = await supabase
-    .from("pengiriman")
-    .select("id_pengiriman")
-    .eq("no_resi", receiptNumber)
-    .maybeSingle<{ id_pengiriman: number }>();
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  if (!data?.id_pengiriman) {
-    return { success: false, error: "Data pengiriman tidak ditemukan." };
-  }
-
-  const { error: updateError } = await supabase
-    .from("detail_pengiriman")
-    .update({
-      is_paid: true,
-      status_pembayaran: "paid",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id_pengiriman", data.id_pengiriman);
-
-  if (updateError) {
-    return { success: false, error: updateError.message };
-  }
-
-  return { success: true };
 }
