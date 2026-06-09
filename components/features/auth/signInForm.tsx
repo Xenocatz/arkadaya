@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { checkForEmailAndRole, signInUser } from "@/service/auth.service";
+import { getProfileByEmail, signInUser } from "@/service/auth.service";
 
 interface SignInFormProps {
   mobile?: boolean;
@@ -28,24 +28,20 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const checkEmailResult = await checkForEmailAndRole(data.name.toString().trim());
-
-      if (!checkEmailResult.success) {
-        throw new Error(checkEmailResult.error);
-      }
-
-      const email = checkEmailResult.data?.email;
-      const role = checkEmailResult.data?.role;
-
-      if (!email) {
-        throw new Error("Email tidak ditemukan.");
-      }
-
+      const email = data.email.toString().trim().toLowerCase();
       const signInResult = await signInUser(email, data.password as string);
 
       if (!signInResult.success) {
         throw new Error(signInResult.error);
       }
+
+      const profileResult = await getProfileByEmail(email);
+
+      if (!profileResult.success) {
+        throw new Error(profileResult.error);
+      }
+
+      const role = profileResult.data?.role;
 
       switch (role) {
         case "admin":
@@ -74,13 +70,13 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
           <div className="space-y-5">
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5 text-[#0a315c]">
-                <User size={26} strokeWidth={2} />
+                <Mail size={26} strokeWidth={2} />
               </div>
               <input
-                type="text"
-                name="name"
+                type="email"
+                name="email"
                 required
-                placeholder="Name"
+                placeholder="Email"
                 className="h-[62px] w-full rounded-[16px] border-[1.5px] border-[#0a315c] bg-[#d9e7f5] pl-14 pr-6 text-base font-medium text-[#0a315c] outline-none placeholder:text-[#0a315c]/50"
               />
             </div>
@@ -142,7 +138,7 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
       <h2 className="mb-12 text-center text-4xl font-bold text-[#0a2d5e]">Sign In</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Input type="text" placeholder="Name" name="name" icon={User} required />
+        <Input type="email" placeholder="Email" name="email" icon={Mail} required />
 
         <Input
           type={showPassword ? "text" : "password"}

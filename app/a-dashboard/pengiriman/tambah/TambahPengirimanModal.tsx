@@ -1,20 +1,24 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, Phone, Save } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { addPengiriman, type PengirimanInput } from "@/service/pengiriman.service";
+import { getDriverProfiles } from "@/service/driver.service";
+import { generateNoResi } from "@/utils/format";
 
-const FORM_KOSONG: PengirimanInput = {
-  noResi: "",
-  namaPengirim: "",
-  noTelpPengirim: "",
-  vendor: "",
-  driver: "",
-  namaPenerima: "",
-  noTelpPenerima: "",
-  alamat: "",
-};
+function createEmptyForm(): PengirimanInput {
+  return {
+    noResi: generateNoResi(),
+    namaPengirim: "",
+    noTelpPengirim: "",
+    vendor: "",
+    driver: "",
+    namaPenerima: "",
+    noTelpPenerima: "",
+    alamat: "",
+  };
+}
 
 interface TambahPengirimanModalProps {
   onClose: () => void;
@@ -25,9 +29,45 @@ export default function TambahPengirimanModal({
   onClose,
   onSaved,
 }: TambahPengirimanModalProps) {
-  const [form, setForm] = useState<PengirimanInput>(FORM_KOSONG);
+  const [form, setForm] = useState<PengirimanInput>(() => createEmptyForm());
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingDrivers, setIsLoadingDrivers] = useState(true);
+  const [driverNames, setDriverNames] = useState<string[]>([]);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDrivers = async () => {
+      setIsLoadingDrivers(true);
+
+      const result = await getDriverProfiles();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!result.success) {
+        setError(result.error ?? "Gagal memuat daftar driver");
+        setDriverNames([]);
+        setIsLoadingDrivers(false);
+        return;
+      }
+
+      const daftarDriver = result.data
+        .map((item) => item.nama?.trim())
+        .filter((value): value is string => Boolean(value));
+
+      setDriverNames(daftarDriver);
+      setIsLoadingDrivers(false);
+    };
+
+    void fetchDrivers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleChange = (field: keyof PengirimanInput, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -35,8 +75,24 @@ export default function TambahPengirimanModal({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSaving(true);
     setError("");
+
+    const driverInput = form.driver.trim();
+    const driverTersedia = driverNames.some(
+      (namaDriver) => namaDriver.toLowerCase() === driverInput.toLowerCase(),
+    );
+
+    if (isLoadingDrivers) {
+      setError("Daftar driver masih dimuat. Silakan coba sesaat lagi.");
+      return;
+    }
+
+    if (!driverTersedia) {
+      setError("Nama driver harus terdaftar pada tabel profiles.");
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
       const result = await addPengiriman({
@@ -44,7 +100,7 @@ export default function TambahPengirimanModal({
         namaPengirim: form.namaPengirim.trim(),
         noTelpPengirim: form.noTelpPengirim.trim(),
         vendor: form.vendor.trim(),
-        driver: form.driver.trim(),
+        driver: driverInput,
         namaPenerima: form.namaPenerima.trim(),
         noTelpPenerima: form.noTelpPenerima.trim(),
         alamat: form.alamat.trim(),
@@ -55,7 +111,7 @@ export default function TambahPengirimanModal({
       }
 
       await onSaved();
-      setForm(FORM_KOSONG);
+      setForm(createEmptyForm());
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan");
@@ -87,10 +143,13 @@ export default function TambahPengirimanModal({
               <input
                 type="text"
                 value={form.noResi}
-                onChange={(e) => handleChange("noResi", e.target.value)}
+                readOnly
                 required
-                className={inputClass}
+                className={`${inputClass} cursor-not-allowed bg-gray-100 text-gray-500`}
               />
+              <p className="text-xs text-gray-400">
+                Nomor resi dibuat otomatis saat tombol tambah pengiriman diklik.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -147,9 +206,24 @@ export default function TambahPengirimanModal({
                 type="text"
                 value={form.driver}
                 onChange={(e) => handleChange("driver", e.target.value)}
+                list="driver-options"
                 required
                 className={inputClass}
+                placeholder={
+                  isLoadingDrivers
+                    ? "Memuat daftar driver..."
+                    : "Masukkan nama driver terdaftar"
+                }
               />
+              <datalist id="driver-options">
+                {driverNames.map((namaDriver) => (
+                  <option key={namaDriver} value={namaDriver} />
+                ))}
+              </datalist>
+              <p className="text-xs text-gray-400">
+                Pengiriman hanya bisa disimpan bila nama driver tersedia di
+                tabel profiles.
+              </p>
             </div>
           </div>
 

@@ -3,14 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Eye, EyeOff, Lock, User } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { CUSTOMER_ROUTES } from "@/components/customer/routes";
-import { checkForEmailAndRole, signInUser } from "@/service/auth.service";
+import { getProfileByEmail, signInUser } from "@/service/auth.service";
 
 export default function LoginForm() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -29,24 +29,20 @@ export default function LoginForm() {
     setErrorMessage("");
 
     try {
-      const checkEmailResult = await checkForEmailAndRole(formData.username.trim());
-
-      if (!checkEmailResult.success) {
-        throw new Error(checkEmailResult.error);
-      }
-
-      const email = checkEmailResult.data?.email;
-      const role = checkEmailResult.data?.role;
-
-      if (!email) {
-        throw new Error("Email tidak ditemukan untuk akun ini.");
-      }
-
+      const email = formData.email.trim().toLowerCase();
       const signInResult = await signInUser(email, formData.password);
 
       if (!signInResult.success) {
         throw new Error(signInResult.error);
       }
+
+      const profileResult = await getProfileByEmail(email);
+
+      if (!profileResult.success) {
+        throw new Error(profileResult.error);
+      }
+
+      const role = profileResult.data?.role;
 
       if (role === "admin") {
         router.push("/a-dashboard");
@@ -54,7 +50,7 @@ export default function LoginForm() {
       }
 
       setIsSubmitted(true);
-      setFormData({ username: "", password: "" });
+      setFormData({ email: "", password: "" });
       window.setTimeout(() => {
         router.push(CUSTOMER_ROUTES.order);
       }, 600);
@@ -88,14 +84,15 @@ export default function LoginForm() {
           <div className="space-y-5">
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5 text-[#0a315c]">
-                <User size={26} strokeWidth={2} />
+                <Mail size={26} strokeWidth={2} />
               </div>
               <input
-                type="text"
-                name="username"
+                type="email"
+                name="email"
                 required
-                value={formData.username}
+                value={formData.email}
                 onChange={handleChange}
+                placeholder="Email"
                 className="h-[62px] w-full rounded-[16px] border-[1.5px] border-[#0a315c] bg-[#d9e7f5] pl-14 pr-6 text-base font-medium text-[#0a315c] outline-none"
               />
             </div>

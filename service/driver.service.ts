@@ -43,19 +43,32 @@ export async function addDriverProfile({
   email,
   no_hp,
 }: DriverProfileInput) {
-  const { data, error } = await supabase.from("profiles").insert({
-    nama,
-    email,
-    no_hp,
-    role: "driver",
+  const response = await fetch("/api/drivers", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      nama,
+      email,
+      no_hp,
+    }),
   });
 
-  if (error) {
-    console.error("Supabase insert error:", error.message);
-    return { success: false, error: error.message };
+  const result = (await response.json()) as {
+    success: boolean;
+    error?: string;
+    data?: unknown;
+  };
+
+  if (!response.ok || !result.success) {
+    return {
+      success: false,
+      error: result.error ?? "Gagal menambahkan driver",
+    };
   }
 
-  return { success: true, data };
+  return { success: true, data: result.data };
 }
 
 export async function updateDriverProfile(

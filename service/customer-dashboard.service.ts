@@ -152,7 +152,10 @@ function toNumber(value?: number | string | null) {
     return null;
   }
 
-  const normalized = value.replace(/[^\d,-]/g, "").replace(/\./g, "").replace(",", ".");
+  const normalized = value
+    .replace(/[^\d,-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
   const parsed = Number(normalized);
 
   return Number.isFinite(parsed) ? parsed : null;
@@ -248,7 +251,10 @@ function isPaidOrder(detail?: DetailPengirimanRow | null) {
   return paymentStatus === "paid" || paymentStatus === "lunas";
 }
 
-function normalizePaymentLabel(detail?: DetailPengirimanRow | null, isPaid?: boolean) {
+function normalizePaymentLabel(
+  detail?: DetailPengirimanRow | null,
+  isPaid?: boolean,
+) {
   if (isPaid) {
     return "Paid";
   }
@@ -270,10 +276,7 @@ function getSortTimestamp(row: PengirimanRow) {
   const detail = getDetailRow(row);
 
   return new Date(
-    detail?.updated_at ??
-      detail?.created_at ??
-      row.created_at ??
-      0,
+    detail?.updated_at ?? detail?.created_at ?? row.created_at ?? 0,
   ).getTime();
 }
 
@@ -373,11 +376,6 @@ function buildTimelineFromTracking(
   ];
 }
 
-function matchesCurrentCustomer(row: PengirimanRow, profile: CustomerProfile) {
-  const normalizedName = normalizeText(profile.nama);
-  return normalizeText(row.nama_pengirim) === normalizedName;
-}
-
 function mapOrder(row: PengirimanRow): CustomerOrder {
   const detail = getDetailRow(row);
   const trackingRows = row.tracking_pengiriman ?? [];
@@ -407,7 +405,11 @@ function mapOrder(row: PengirimanRow): CustomerOrder {
     goodsReceiptUrl: detail?.goods_receipt_url ?? null,
     deliveryInvoiceUrl: detail?.delivery_invoice_url ?? null,
     notes: detail?.catatan_pengiriman ?? null,
-    timeline: buildTimelineFromTracking(trackingRows, detail, shipmentStatus.label),
+    timeline: buildTimelineFromTracking(
+      trackingRows,
+      detail,
+      shipmentStatus.label,
+    ),
   };
 }
 
@@ -418,7 +420,9 @@ function buildNotifications(
   return orders.map((order, index) => {
     const trackingRows = rows[index]?.tracking_pengiriman ?? [];
     const latestTracking = [...trackingRows].sort((a, b) => {
-      return new Date(b.waktu ?? 0).getTime() - new Date(a.waktu ?? 0).getTime();
+      return (
+        new Date(b.waktu ?? 0).getTime() - new Date(a.waktu ?? 0).getTime()
+      );
     })[0];
 
     const normalizedTrackingStatus = normalizeText(latestTracking?.status);
@@ -471,56 +475,67 @@ async function getCurrentCustomerProfile(): Promise<CustomerProfile> {
 
 export async function getCustomerDashboardData(): Promise<CustomerDashboardData> {
   const profile = await getCurrentCustomerProfile();
-  const { data, error } = await supabase.from("pengiriman").select(`
-    id_pengiriman,
-    id_user,
-    id_paket,
-    driver,
-    no_resi,
-    nama_penerima,
-    no_hp_penerima,
-    alamat_asal,
-    alamat_tujuan,
-    created_at,
-    status,
-    nama_pengirim,
-    no_hp_pengirim,
-    vendor,
-    detail_pengiriman (
-      id_detail_pengiriman,
+  const namaCustomer = profile.nama.trim();
+
+  if (!namaCustomer) {
+    throw new Error("Nama akun pengguna belum tersedia.");
+  }
+
+  const { data, error } = await supabase
+    .from("pengiriman")
+    .select(
+      `
       id_pengiriman,
-      total_tagihan,
-      is_paid,
-      status_pembayaran,
-      due_date,
-      estimasi_sampai,
-      picked_up_at,
-      in_transit_at,
-      delivered_at,
-      goods_receipt_url,
-      delivery_invoice_url,
-      catatan_pengiriman,
+      id_user,
+      id_paket,
+      driver,
+      no_resi,
+      nama_penerima,
+      no_hp_penerima,
+      alamat_asal,
+      alamat_tujuan,
       created_at,
-      updated_at
-    ),
-    tracking_pengiriman (
-      id_tracking,
-      id_pengiriman,
       status,
-      waktu,
-      lokasi,
-      keterangan,
-      created_at
+      nama_pengirim,
+      no_hp_pengirim,
+      vendor,
+      detail_pengiriman (
+        id_detail_pengiriman,
+        id_pengiriman,
+        total_tagihan,
+        is_paid,
+        status_pembayaran,
+        due_date,
+        estimasi_sampai,
+        picked_up_at,
+        in_transit_at,
+        delivered_at,
+        goods_receipt_url,
+        delivery_invoice_url,
+        catatan_pengiriman,
+        created_at,
+        updated_at
+      ),
+      tracking_pengiriman (
+        id_tracking,
+        id_pengiriman,
+        status,
+        waktu,
+        lokasi,
+        keterangan,
+        created_at
+      )
+    `,
     )
-  `);
+    .eq("nama_penerima", namaCustomer);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const filteredRows = ((data as PengirimanRow[] | null) ?? [])
-    .filter((row) => matchesCurrentCustomer(row, profile))
-    .sort((a, b) => getSortTimestamp(b) - getSortTimestamp(a));
+  const filteredRows = ((data as PengirimanRow[] | null) ?? []).sort(
+    (a, b) => getSortTimestamp(b) - getSortTimestamp(a),
+  );
 
   const orders = filteredRows.map(mapOrder);
 

@@ -8,6 +8,7 @@ export interface AuthProfile {
   no_hp: string;
   role: string;
 }
+
 export async function signUpNewUser(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -59,11 +60,11 @@ export async function addUserProfiles(
   return { success: true, data };
 }
 
-export async function checkForEmailAndRole(nama: string) {
+export async function getProfileByEmail(email: string) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("email, role")
-    .eq("nama", nama)
+    .select("nama, email, no_hp, role")
+    .eq("email", email)
     .single();
 
   if (error) {
@@ -71,7 +72,7 @@ export async function checkForEmailAndRole(nama: string) {
     return { success: false, error: error.message };
   }
 
-  return { success: true, data };
+  return { success: true, data: data as AuthProfile };
 }
 
 export async function signOut() {

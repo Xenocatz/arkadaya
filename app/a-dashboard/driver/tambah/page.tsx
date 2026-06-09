@@ -60,7 +60,8 @@ export default function TambahDriverPage() {
             Tambah Driver
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            Data akan disimpan ke tabel `profiles` dengan role `driver`.
+            Data akan disimpan ke tabel `profiles` dengan role `driver` dan akun
+            login dibuat otomatis memakai password awal `driver2243`.
           </p>
         </div>
 
