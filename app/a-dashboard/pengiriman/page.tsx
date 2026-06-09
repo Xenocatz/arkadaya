@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Package, Plus, RefreshCw, Search } from "lucide-react";
+import {
+  ChevronDown,
+  MapPin,
+  Package,
+  Plus,
+  RefreshCw,
+  Search,
+  UserRound,
+  X,
+} from "lucide-react";
 import {
   getPengirimanList,
   type PengirimanItem,
@@ -17,13 +26,14 @@ export default function PengirimanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [pengiriman, setPengiriman] = useState<PengirimanItem[]>([]);
+  const [selectedPengiriman, setSelectedPengiriman] =
+    useState<PengirimanItem | null>(null);
 
-  const fetchPengiriman = async () => {
-    setIsLoading(true);
-    setError("");
-
-    const result = await getPengirimanList();
-
+  const applyPengirimanResult = (
+    result:
+      | Awaited<ReturnType<typeof getPengirimanList>>
+      | { success: false; error?: string; data?: PengirimanItem[] },
+  ) => {
     if (!result.success) {
       setError(result.error ?? "Gagal memuat data pengiriman");
       setPengiriman([]);
@@ -35,8 +45,32 @@ export default function PengirimanPage() {
     setIsLoading(false);
   };
 
+  const fetchPengiriman = async () => {
+    setIsLoading(true);
+    setError("");
+
+    const result = await getPengirimanList();
+    applyPengirimanResult(result);
+  };
+
   useEffect(() => {
-    void fetchPengiriman();
+    let isMounted = true;
+
+    const loadInitialPengiriman = async () => {
+      const result = await getPengirimanList();
+
+      if (!isMounted) {
+        return;
+      }
+
+      applyPengirimanResult(result);
+    };
+
+    void loadInitialPengiriman();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredData = pengiriman.filter((item) => {
@@ -172,7 +206,8 @@ export default function PengirimanPage() {
                 {filteredData.map((item) => (
                   <tr
                     key={item.noResi}
-                    className="transition-colors hover:bg-gray-50">
+                    onClick={() => setSelectedPengiriman(item)}
+                    className="cursor-pointer transition-colors hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="flex-shrink-0 rounded-lg bg-blue-50 p-2">
@@ -244,6 +279,162 @@ export default function PengirimanPage() {
           onClose={() => setIsModalOpen(false)}
           onSaved={fetchPengiriman}
         />
+      ) : null}
+
+      {selectedPengiriman ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-blue-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-blue-200 bg-blue-50/25 px-8 py-4">
+              <div className="min-w-0 flex-1">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">
+                  Detail Resi
+                </p>
+                <span className="block break-all text-sm font-extrabold uppercase tracking-wide text-blue-900">
+                  {selectedPengiriman.noResi}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPengiriman(null)}
+                className="flex-shrink-0 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                title="Tutup">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-8 p-8">
+              <div className="flex items-center gap-3 text-lg font-bold text-blue-950">
+                <UserRound className="h-6 w-6 text-blue-900" />
+                <span>Detail Pengiriman</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="md:col-span-2 lg:col-span-2">
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    No. Resi
+                  </p>
+                  <p className="break-all text-2xl font-extrabold leading-tight text-blue-950">
+                    {selectedPengiriman.noResi}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    Status
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.status}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    Update Terakhir
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.update}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    Pengirim
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.pengirim}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    No. Telp Pengirim
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.noTelpPengirim}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    Vendor
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.vendor}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    Penerima
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.penerima}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    No. Telp Penerima
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.noTelpPenerima}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-400">
+                    Driver
+                  </p>
+                  <p className="text-base font-semibold text-gray-800">
+                    {selectedPengiriman.driver}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50/10 p-6">
+                <div className="flex items-center gap-2 text-lg font-bold text-blue-950">
+                  <MapPin className="h-5 w-5 text-blue-900" />
+                  <span>Rute Pengiriman</span>
+                </div>
+
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <p className="mb-1 font-medium text-gray-400">
+                      Alamat Asal
+                    </p>
+                    <p className="font-semibold leading-relaxed text-gray-800">
+                      {selectedPengiriman.alamatAsal}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Koordinat:{" "}
+                      {selectedPengiriman.asalLat !== null &&
+                      selectedPengiriman.asalLng !== null
+                        ? `${selectedPengiriman.asalLat}, ${selectedPengiriman.asalLng}`
+                        : "Belum tersedia"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 font-medium text-gray-400">
+                      Alamat Tujuan
+                    </p>
+                    <p className="font-semibold leading-relaxed text-gray-800">
+                      {selectedPengiriman.alamat}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Koordinat:{" "}
+                      {selectedPengiriman.tujuanLat !== null &&
+                      selectedPengiriman.tujuanLng !== null
+                        ? `${selectedPengiriman.tujuanLat}, ${selectedPengiriman.tujuanLng}`
+                        : "Belum tersedia"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPengiriman(null)}
+                  className="rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700">
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

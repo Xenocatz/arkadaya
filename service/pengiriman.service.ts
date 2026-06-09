@@ -10,7 +10,30 @@ export interface PengirimanInput {
   driver: string;
   namaPenerima: string;
   noTelpPenerima: string;
-  alamat: string;
+  alamatAsal: string;
+  asalLat: number;
+  asalLng: number;
+  alamatTujuan: string;
+  tujuanLat: number;
+  tujuanLng: number;
+}
+
+export interface PengirimanAddressDraft {
+  address: string;
+  lat: number | null;
+  lng: number | null;
+}
+
+export interface PengirimanFormInput {
+  noResi: string;
+  namaPengirim: string;
+  noTelpPengirim: string;
+  vendor: string;
+  driver: string;
+  namaPenerima: string;
+  noTelpPenerima: string;
+  alamatAsal: PengirimanAddressDraft;
+  alamatTujuan: PengirimanAddressDraft;
 }
 
 export interface PengirimanItem {
@@ -21,10 +44,15 @@ export interface PengirimanItem {
   vendor: string;
   penerima: string;
   noTelpPenerima: string;
+  alamatAsal: string;
   alamat: string;
   status: string;
   driver: string;
   update: string;
+  asalLat: number | null;
+  asalLng: number | null;
+  tujuanLat: number | null;
+  tujuanLng: number | null;
 }
 
 interface PengirimanRow {
@@ -39,9 +67,14 @@ interface PengirimanRow {
   penerima?: string | null;
   no_hp_penerima?: string | null;
   alamat?: string | null;
+  alamat_asal?: string | null;
   alamat_tujuan?: string | null;
   status?: string | null;
   driver?: string | null;
+  asal_lat?: number | null;
+  asal_lng?: number | null;
+  tujuan_lat?: number | null;
+  tujuan_lng?: number | null;
   updated_at?: string | null;
   created_at?: string | null;
 }
@@ -72,10 +105,15 @@ function mapPengiriman(row: PengirimanRow): PengirimanItem {
     vendor: row.vendor ?? "-",
     penerima: row.nama_penerima ?? row.penerima ?? "-",
     noTelpPenerima: row.no_hp_penerima ?? "-",
+    alamatAsal: row.alamat_asal ?? "-",
     alamat: row.alamat_tujuan ?? row.alamat ?? "-",
     status: row.status ?? "Pending",
     driver: row.driver ?? "-",
     update: formatUpdate(row.updated_at ?? row.created_at),
+    asalLat: row.asal_lat ?? null,
+    asalLng: row.asal_lng ?? null,
+    tujuanLat: row.tujuan_lat ?? null,
+    tujuanLng: row.tujuan_lng ?? null,
   };
 }
 
@@ -111,7 +149,12 @@ export async function addPengiriman(data: PengirimanInput) {
     driver: data.driver,
     nama_penerima: data.namaPenerima,
     no_hp_penerima: data.noTelpPenerima,
-    alamat_tujuan: data.alamat,
+    alamat_asal: data.alamatAsal,
+    asal_lat: data.asalLat,
+    asal_lng: data.asalLng,
+    alamat_tujuan: data.alamatTujuan,
+    tujuan_lat: data.tujuanLat,
+    tujuan_lng: data.tujuanLng,
     status: "Pending",
   });
 

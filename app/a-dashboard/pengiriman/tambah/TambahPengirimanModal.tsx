@@ -2,12 +2,24 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, Phone, Save } from "lucide-react";
+import AddressAutocomplete, {
+  type AddressValue,
+} from "@/components/maps/AddressAutocomplete";
 import Modal from "@/components/ui/Modal";
-import { addPengiriman, type PengirimanInput } from "@/service/pengiriman.service";
+import {
+  addPengiriman,
+  type PengirimanFormInput,
+} from "@/service/pengiriman.service";
 import { getDriverProfiles } from "@/service/driver.service";
 import { generateNoResi } from "@/utils/format";
 
-function createEmptyForm(): PengirimanInput {
+const EMPTY_ADDRESS: AddressValue = {
+  address: "",
+  lat: null,
+  lng: null,
+};
+
+function createEmptyForm(): PengirimanFormInput {
   return {
     noResi: generateNoResi(),
     namaPengirim: "",
@@ -16,7 +28,8 @@ function createEmptyForm(): PengirimanInput {
     driver: "",
     namaPenerima: "",
     noTelpPenerima: "",
-    alamat: "",
+    alamatAsal: { ...EMPTY_ADDRESS },
+    alamatTujuan: { ...EMPTY_ADDRESS },
   };
 }
 
@@ -29,7 +42,7 @@ export default function TambahPengirimanModal({
   onClose,
   onSaved,
 }: TambahPengirimanModalProps) {
-  const [form, setForm] = useState<PengirimanInput>(() => createEmptyForm());
+  const [form, setForm] = useState<PengirimanFormInput>(() => createEmptyForm());
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingDrivers, setIsLoadingDrivers] = useState(true);
   const [driverNames, setDriverNames] = useState<string[]>([]);
@@ -69,9 +82,29 @@ export default function TambahPengirimanModal({
     };
   }, []);
 
-  const handleChange = (field: keyof PengirimanInput, value: string) => {
+  const handleChange = (
+    field: Exclude<keyof PengirimanFormInput, "alamatAsal" | "alamatTujuan">,
+    value: string,
+  ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const handleAddressChange = (
+    field: "alamatAsal" | "alamatTujuan",
+    value: AddressValue,
+  ) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const alamatAsalValid =
+    form.alamatAsal.address.trim() !== "" &&
+    form.alamatAsal.lat !== null &&
+    form.alamatAsal.lng !== null;
+
+  const alamatTujuanValid =
+    form.alamatTujuan.address.trim() !== "" &&
+    form.alamatTujuan.lat !== null &&
+    form.alamatTujuan.lng !== null;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -92,6 +125,16 @@ export default function TambahPengirimanModal({
       return;
     }
 
+    if (!alamatAsalValid) {
+      setError("Alamat asal wajib dipilih dari suggestion alamat.");
+      return;
+    }
+
+    if (!alamatTujuanValid) {
+      setError("Alamat tujuan wajib dipilih dari suggestion alamat.");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -103,7 +146,12 @@ export default function TambahPengirimanModal({
         driver: driverInput,
         namaPenerima: form.namaPenerima.trim(),
         noTelpPenerima: form.noTelpPenerima.trim(),
-        alamat: form.alamat.trim(),
+        alamatAsal: form.alamatAsal.address.trim(),
+        asalLat: form.alamatAsal.lat!,
+        asalLng: form.alamatAsal.lng!,
+        alamatTujuan: form.alamatTujuan.address.trim(),
+        tujuanLat: form.alamatTujuan.lat!,
+        tujuanLng: form.alamatTujuan.lng!,
       });
 
       if (!result.success) {
@@ -262,16 +310,30 @@ export default function TambahPengirimanModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-800">
-                Alamat
-              </label>
-              <textarea
-                value={form.alamat}
-                onChange={(e) => handleChange("alamat", e.target.value)}
-                rows={5}
+              <AddressAutocomplete
+                label="Alamat Asal"
+                placeholder="Ketik alamat asal lalu pilih suggestion"
+                value={form.alamatAsal}
+                onChange={(value) => handleAddressChange("alamatAsal", value)}
                 required
-                className="w-full resize-none rounded-xl border border-blue-300 px-4 py-3 text-sm text-gray-700 placeholder-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <AddressAutocomplete
+                label="Alamat Tujuan"
+                placeholder="Ketik alamat tujuan lalu pilih suggestion"
+                value={form.alamatTujuan}
+                onChange={(value) =>
+                  handleAddressChange("alamatTujuan", value)
+                }
+                required
+              />
+            </div>
+
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-xs text-blue-700">
+              Koordinat akan tersimpan otomatis setelah alamat dipilih dari
+              suggestion Photon API.
             </div>
           </div>
         </div>
