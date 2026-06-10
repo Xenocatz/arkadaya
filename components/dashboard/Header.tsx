@@ -1,37 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Search, Bell, User, Menu } from "lucide-react";
 import NotificationPanel from "@/components/dashboard/NotificationPanel";
+import { useAdminNotifications } from "@/hook/useAdminNotifications";
 import { useUserProfile } from "@/hook/useUserProfile";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
 }
-interface ProfileData {
-  nama: string;
-  role: string;
-}
-const defaultProfile: ProfileData = {
-  nama: "",
-  role: "",
-};
 
 const Header = ({ onToggleSidebar }: HeaderProps) => {
   // State untuk membuka/menutup panel notifikasi
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const { data: profileData } = useUserProfile();
-  const [profile, setProfile] = useState<ProfileData>(defaultProfile);
-
-  useEffect(() => {
-    if (profileData && "nama" in profileData) {
-      setProfile({
-        nama: profileData.nama ?? "",
-        role: profileData.role ?? "",
-      });
-    }
-  }, [profileData]);
+  const { data: notifications = [] } = useAdminNotifications();
+  const profile = {
+    nama: profileData && "nama" in profileData ? (profileData.nama ?? "") : "",
+    role: profileData && "role" in profileData ? (profileData.role ?? "") : "",
+  };
   return (
     <>
       <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100 sticky top-0 z-30">
@@ -65,7 +53,9 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
             title="Notifikasi">
             <Bell className="w-6 h-6" />
             {/* Badge merah penanda ada notifikasi baru */}
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full" />
+            {notifications.length > 0 ? (
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full" />
+            ) : null}
           </button>
 
           {/* Avatar & Profil Pengguna */}

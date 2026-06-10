@@ -2,36 +2,7 @@
 
 import { useEffect } from "react";
 import { X, Truck } from "lucide-react";
-
-// Interface data notifikasi
-interface Notifikasi {
-  id: string;
-  waktu: string;
-  judul: string;
-  warnajudul: "orange" | "green";
-  noResi: string;
-  penerima: string;
-}
-
-// Data notifikasi sesuai contoh gambar (persis)
-const DATA_NOTIFIKASI: Notifikasi[] = [
-  {
-    id: "1",
-    waktu: "Today, 11.20 AM",
-    judul: "Your Package Has Been Picked Up",
-    warnajudul: "orange",
-    noResi: "AHP001226085",
-    penerima: "Aulia Rachmah",
-  },
-  {
-    id: "2",
-    waktu: "Yesterday, 01:00 PM",
-    judul: "Your Order Has Been Received",
-    warnajudul: "green",
-    noResi: "AHP001226085",
-    penerima: "Aulia Rachmah",
-  },
-];
+import { useAdminNotifications } from "@/hook/useAdminNotifications";
 
 interface NotificationPanelProps {
   /** Callback untuk menutup panel */
@@ -43,6 +14,12 @@ interface NotificationPanelProps {
  * Menutup diri saat klik overlay atau tekan Escape.
  */
 export default function NotificationPanel({ onClose }: NotificationPanelProps) {
+  const {
+    data: notifications = [],
+    isLoading,
+    isError,
+  } = useAdminNotifications();
+
   // Tutup panel dengan tombol Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -100,8 +77,26 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
             Notification
           </h2>
 
+          {isLoading ? (
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/50 px-5 py-4 text-sm text-slate-500">
+              Memuat notifikasi...
+            </div>
+          ) : null}
+
+          {isError ? (
+            <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-500">
+              Gagal memuat notifikasi dari Supabase.
+            </div>
+          ) : null}
+
+          {!isLoading && !isError && notifications.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500">
+              Belum ada notifikasi pengiriman.
+            </div>
+          ) : null}
+
           {/* Daftar Kartu Notifikasi */}
-          {DATA_NOTIFIKASI.map((notif) => (
+          {notifications.map((notif) => (
             <div
               key={notif.id}
               className="border border-blue-200 rounded-2xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow relative">
