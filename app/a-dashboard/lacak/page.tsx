@@ -1,73 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
-
-// Tipe status paket yang tersedia
-type StatusPaket = "In the rest area" | "Canceled" | "Delivered";
-
-// Interface data pelacakan paket
-interface LacakPaket {
-  id: string;
-  noResi: string;
-  penerima: string;
-  driver: string;
-  status: StatusPaket;
-}
-
-// Data mock sesuai contoh gambar
-const DATA_LACAK: LacakPaket[] = [
-  {
-    id: "1",
-    noResi: "AHP001234567",
-    penerima: "Faiz Abdullah",
-    driver: "Fauzan",
-    status: "In the rest area",
-  },
-  {
-    id: "2",
-    noResi: "AHP001234567",
-    penerima: "Faiz Abdullah",
-    driver: "Fauzan",
-    status: "In the rest area",
-  },
-  {
-    id: "3",
-    noResi: "AHP001234567",
-    penerima: "Faiz Abdullah",
-    driver: "Fauzan",
-    status: "Canceled",
-  },
-  {
-    id: "4",
-    noResi: "AHP001234567",
-    penerima: "Faiz Abdullah",
-    driver: "Fauzan",
-    status: "Delivered",
-  },
-  {
-    id: "5",
-    noResi: "AHP001234567",
-    penerima: "Faiz Abdullah",
-    driver: "Fauzan",
-    status: "Delivered",
-  },
-];
+import {
+  getPengirimanList,
+  type PengirimanItem,
+} from "@/service/pengiriman.service";
 
 /**
  * Mengembalikan class warna teks berdasarkan status paket.
  */
-function getStatusColor(status: StatusPaket): string {
-  switch (status) {
-    case "In the rest area":
-      return "text-orange-400";
-    case "Canceled":
-      return "text-red-500";
-    case "Delivered":
-      return "text-green-500";
-    default:
-      return "text-gray-500";
+function getStatusColor(status: string): string {
+  const normalizedStatus = status.trim().toLowerCase();
+
+  if (
+    normalizedStatus === "in transit" ||
+    normalizedStatus === "in_transit" ||
+    normalizedStatus === "dalam pengiriman" ||
+    normalizedStatus === "dalam perjalanan"
+  ) {
+    return "text-orange-400";
   }
+
+  if (
+    normalizedStatus === "canceled" ||
+    normalizedStatus === "cancelled" ||
+    normalizedStatus === "dibatalkan"
+  ) {
+    return "text-red-500";
+  }
+
+  if (
+    normalizedStatus === "delivered" ||
+    normalizedStatus === "terkirim" ||
+    normalizedStatus === "selesai"
+  ) {
+    return "text-green-500";
+  }
+
+  return "text-gray-500";
 }
 
 /**
@@ -76,9 +47,40 @@ function getStatusColor(status: StatusPaket): string {
  */
 export default function LacakPaketPage() {
   const [query, setQuery] = useState("");
+  const [dataLacak, setDataLacak] = useState<PengirimanItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDataLacak = async () => {
+      const result = await getPengirimanList();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!result.success) {
+        setError(result.error ?? "Gagal memuat data lacak paket");
+        setDataLacak([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setDataLacak(result.data);
+      setIsLoading(false);
+    };
+
+    void fetchDataLacak();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Filter data berdasarkan input pencarian
-  const filteredData = DATA_LACAK.filter((item) => {
+  const filteredData = dataLacak.filter((item) => {
     if (query === "") return true;
     const q = query.toLowerCase();
     return (
@@ -115,10 +117,19 @@ export default function LacakPaketPage() {
       <div className="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden pb-6">
         {/* Subjudul tabel */}
         <div className="px-8 py-5">
-          <h2 className="text-lg font-semibold text-gray-800">On Progress</h2>
+          <h2 className="text-lg font-semibold text-gray-800">
+            Data Pengiriman
+          </h2>
         </div>
 
-        <div className="overflow-x-auto">
+        {isLoading ? (
+          <div className="px-8 pb-6 text-sm text-gray-500">
+            Memuat data lacak paket...
+          </div>
+        ) : error ? (
+          <div className="px-8 pb-6 text-sm text-red-500">{error}</div>
+        ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             {/* Header Tabel */}
             <thead>
@@ -140,8 +151,8 @@ export default function LacakPaketPage() {
 
             {/* Baris Data */}
             <tbody>
-              {filteredData.map((item) => (
-                <tr key={item.id} className="group">
+              {filteredData.map((item, index) => (
+                <tr key={item.id || `${item.noResi}-${index}`} className="group">
                   <td className="px-6 py-2" colSpan={4}>
                     {/* Setiap baris dikemas dalam pill/card seperti pada gambar */}
                     <div className="flex items-center border border-gray-200 rounded-full px-6 py-3 group-hover:border-blue-200 transition-all bg-white">
@@ -186,7 +197,8 @@ export default function LacakPaketPage() {
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ interface SidebarProps {
 const menuItems = [
   { icon: User, label: "Profil", href: "/a-dashboard/profil" },
   { icon: Home, label: "Dashboard", href: "/a-dashboard" },
+  { icon: Search, label: "Lacak Paket", href: "/a-dashboard/lacak" },
   {
     icon: Package,
     label: "Pengiriman Barang",
@@ -21,7 +22,6 @@ const menuItems = [
   },
   { icon: Truck, label: "Manajemen Driver", href: "/a-dashboard/driver" },
   { icon: BarChart3, label: "Laporan", href: "/a-dashboard/laporan" },
-  { icon: Search, label: "Lacak Paket", href: "/a-dashboard/lacak" },
 ];
 
 /**

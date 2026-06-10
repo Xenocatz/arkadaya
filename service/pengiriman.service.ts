@@ -56,7 +56,8 @@ export interface PengirimanItem {
 }
 
 interface PengirimanRow {
-  id: string | number;
+  id?: string | number | null;
+  id_pengiriman?: string | number | null;
   no_resi?: string | null;
   noResi?: string | null;
   nama_pengirim?: string | null;
@@ -97,8 +98,16 @@ function formatUpdate(value?: string | null) {
 }
 
 function mapPengiriman(row: PengirimanRow): PengirimanItem {
+  const fallbackId =
+    row.id ??
+    row.id_pengiriman ??
+    row.no_resi ??
+    row.noResi ??
+    row.created_at ??
+    crypto.randomUUID();
+
   return {
-    id: String(row.id),
+    id: String(fallbackId),
     noResi: row.no_resi ?? row.noResi ?? "-",
     pengirim: row.nama_pengirim ?? row.pengirim ?? "-",
     noTelpPengirim: row.no_hp_pengirim ?? "-",
