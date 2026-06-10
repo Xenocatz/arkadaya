@@ -49,10 +49,15 @@ export interface PengirimanItem {
   status: string;
   driver: string;
   update: string;
+  estimatedArrival: string | null;
   asalLat: number | null;
   asalLng: number | null;
   tujuanLat: number | null;
   tujuanLng: number | null;
+}
+
+interface DetailPengirimanRow {
+  estimasi_sampai?: string | null;
 }
 
 interface PengirimanRow {
@@ -76,6 +81,7 @@ interface PengirimanRow {
   asal_lng?: number | null;
   tujuan_lat?: number | null;
   tujuan_lng?: number | null;
+  detail_pengiriman?: DetailPengirimanRow | DetailPengirimanRow[] | null;
   updated_at?: string | null;
   created_at?: string | null;
 }
@@ -95,6 +101,32 @@ function formatUpdate(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function formatEstimatedArrival(value?: string | null) {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getDetailPengirimanRow(row: PengirimanRow) {
+  if (Array.isArray(row.detail_pengiriman)) {
+    return row.detail_pengiriman[0] ?? null;
+  }
+
+  return row.detail_pengiriman ?? null;
 }
 
 function mapPengiriman(row: PengirimanRow): PengirimanItem {
@@ -119,6 +151,9 @@ function mapPengiriman(row: PengirimanRow): PengirimanItem {
     status: row.status ?? "Pending",
     driver: row.driver ?? "-",
     update: formatUpdate(row.updated_at ?? row.created_at),
+    estimatedArrival: formatEstimatedArrival(
+      getDetailPengirimanRow(row)?.estimasi_sampai,
+    ),
     asalLat: row.asal_lat ?? null,
     asalLng: row.asal_lng ?? null,
     tujuanLat: row.tujuan_lat ?? null,
@@ -131,7 +166,12 @@ function getSortTimestamp(row: PengirimanRow) {
 }
 
 export async function getPengirimanList() {
-  const { data, error } = await supabase.from("pengiriman").select("*");
+  const { data, error } = await supabase.from("pengiriman").select(`
+    *,
+    detail_pengiriman (
+      estimasi_sampai
+    )
+  `);
 
   if (error) {
     console.error("Supabase fetch error:", error.message);

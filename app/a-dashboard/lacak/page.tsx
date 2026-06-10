@@ -1,11 +1,34 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Search,
+  Truck,
+} from "lucide-react";
 import {
   getPengirimanList,
   type PengirimanItem,
 } from "@/service/pengiriman.service";
+
+const TrackingMap = dynamic(
+  () => import("@/components/tracking/TrackingMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center bg-slate-100/90 px-6 text-center">
+        <div className="space-y-3">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-[#0a4a8a]" />
+          <p className="text-sm font-semibold text-slate-600">
+            Memuat peta...
+          </p>
+        </div>
+      </div>
+    ),
+  },
+);
 
 /**
  * Mengembalikan class warna teks berdasarkan status paket.
@@ -50,6 +73,8 @@ export default function LacakPaketPage() {
   const [dataLacak, setDataLacak] = useState<PengirimanItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedPengiriman, setSelectedPengiriman] =
+    useState<PengirimanItem | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -89,6 +114,108 @@ export default function LacakPaketPage() {
       item.driver.toLowerCase().includes(q)
     );
   });
+
+  if (selectedPengiriman) {
+    const estimasiText =
+      selectedPengiriman.status.trim().toLowerCase() === "selesai" ||
+      selectedPengiriman.status.trim().toLowerCase() === "terkirim" ||
+      selectedPengiriman.status.trim().toLowerCase() === "delivered"
+        ? "Pesanan sudah diterima"
+        : selectedPengiriman.estimatedArrival ?? "Estimasi belum tersedia";
+
+    return (
+      <div className="fixed inset-0 z-50 bg-[#f4f7fa]">
+        <div className="flex h-dvh w-full flex-col overflow-hidden bg-white">
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            <div className="absolute inset-0 select-none">
+              <TrackingMap
+                origin={{
+                  latitude: selectedPengiriman.asalLat ?? Number.NaN,
+                  longitude: selectedPengiriman.asalLng ?? Number.NaN,
+                  label: selectedPengiriman.alamatAsal,
+                }}
+                destination={{
+                  latitude: selectedPengiriman.tujuanLat ?? Number.NaN,
+                  longitude: selectedPengiriman.tujuanLng ?? Number.NaN,
+                  label: selectedPengiriman.alamat,
+                }}
+              />
+            </div>
+
+            <div className="pointer-events-none absolute inset-0 z-[900] bg-gradient-to-b from-white/20 via-transparent to-white/75" />
+
+            <div className="absolute left-4 right-4 top-4 z-[1000] flex items-center md:left-6 md:right-6 md:top-6">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPengiriman(null)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-800 shadow-lg transition-all hover:text-black active:scale-95"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+
+                <div className="flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm md:px-4">
+                  <Truck className="h-6 w-6 text-blue-600 md:h-7 md:w-7" />
+                  <div className="leading-tight">
+                    <span className="block text-xs font-black tracking-tight text-[#05336b] md:text-sm">
+                      ARKADAYA
+                    </span>
+                    <span className="mt-[-2px] block text-[8px] font-bold tracking-wider text-[#f07f1b] md:text-[9px]">
+                      EXPRESS LOGISTICS
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-[1000] shrink-0 rounded-t-[32px] border-t border-slate-100 bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl md:px-8 md:pb-8">
+            <div className="mx-auto mb-3 h-1 w-24 rounded-full bg-slate-300" />
+            <div className="text-center">
+              <span className="text-[12px] font-bold text-slate-300">
+                Estimasi Sampai
+              </span>
+              <h3 className="mt-2 text-[20px] font-black tracking-tight text-slate-900 md:text-[24px]">
+                {estimasiText}
+              </h3>
+            </div>
+
+            <div className="my-4 h-px w-full bg-slate-200" />
+
+            <div className="mx-auto w-full max-w-[580px] rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm md:px-6 md:py-5">
+              <div className="flex gap-4">
+                <div className="flex shrink-0 flex-col items-center self-stretch py-1">
+                  <div className="flex min-h-[32px] items-center justify-center md:min-h-[36px]">
+                    <div className="h-5 w-5 rounded-full bg-black md:h-6 md:w-6" />
+                  </div>
+                  <div className="flex flex-1 items-center">
+                    <div className="h-full border-l-2 border-dashed border-slate-300" />
+                  </div>
+                  <div className="flex min-h-[32px] items-center justify-center md:min-h-[36px]">
+                    <MapPin className="h-7 w-7 text-[#0a4a8a]" />
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-h-[32px] items-center md:min-h-[36px]">
+                    <p className="truncate text-[15px] font-medium text-slate-800 md:text-[16px]">
+                      {selectedPengiriman.alamatAsal}
+                    </p>
+                  </div>
+                  <div className="my-3 h-px w-full bg-slate-200" />
+                  <div className="flex min-h-[32px] items-center md:min-h-[36px]">
+                    <p className="truncate text-[15px] font-medium text-slate-800 md:text-[16px]">
+                      {selectedPengiriman.alamat}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -152,10 +279,17 @@ export default function LacakPaketPage() {
             {/* Baris Data */}
             <tbody>
               {filteredData.map((item, index) => (
-                <tr key={item.id || `${item.noResi}-${index}`} className="group">
+                <tr
+                  key={item.id || `${item.noResi}-${index}`}
+                  className="group"
+                >
                   <td className="px-6 py-2" colSpan={4}>
                     {/* Setiap baris dikemas dalam pill/card seperti pada gambar */}
-                    <div className="flex items-center border border-gray-200 rounded-full px-6 py-3 group-hover:border-blue-200 transition-all bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPengiriman(item)}
+                      className="flex w-full items-center rounded-full border border-gray-200 bg-white px-6 py-3 text-left transition-all group-hover:border-blue-200"
+                    >
                       {/* No. Resi */}
                       <span className="w-[220px] text-sm text-gray-700 font-normal">
                         {item.noResi}
@@ -179,7 +313,7 @@ export default function LacakPaketPage() {
                       >
                         {item.status}
                       </span>
-                    </div>
+                    </button>
                   </td>
                 </tr>
               ))}

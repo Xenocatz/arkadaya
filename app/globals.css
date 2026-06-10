@@ -1,14 +1,17 @@
+@import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-app: "Inter", "Segoe UI", Arial, sans-serif;
+  --font-poppins: "Poppins", "Segoe UI", Arial, sans-serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-inter: var(--font-Inter);
+  --font-inter: var(--font-app);
 
   --color-primary: #0070d8;
   --color-dark-primary: #003b72;
@@ -28,7 +31,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter);
+  font-family: var(--font-app);
 }
 
 @keyframes slideUp {
