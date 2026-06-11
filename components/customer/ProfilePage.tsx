@@ -6,48 +6,26 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, LogOut, Mail, Pencil, Phone } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CUSTOMER_ROUTES } from "@/components/customer/routes";
+import ProfileAvatar from "@/components/shared/ProfileAvatar";
 import { signOut } from "@/service/auth.service";
 import { useUserProfile } from "@/hook/useUserProfile";
-import { updateUserProfile } from "@/service/profile.service";
+import { updateUserProfile, uploadUserProfileAvatar } from "@/service/profile.service";
 
 interface EditableProfile {
   nama: string;
   no_hp: string;
 }
 
-interface AvatarProfile {
-  avatarUrl: string;
-}
-
-const defaultAvatarProfile: AvatarProfile = {
-  avatarUrl: "/profile_avatar.png",
-};
-
-const loadStoredAvatar = (): AvatarProfile => {
-  if (typeof window === "undefined") {
-    return defaultAvatarProfile;
-  }
-
-  const saved = window.localStorage.getItem("arkadaya_profile_avatar");
-  if (!saved) return defaultAvatarProfile;
-
-  try {
-    return JSON.parse(saved) as AvatarProfile;
-  } catch (error) {
-    console.error(error);
-    return defaultAvatarProfile;
-  }
-};
-
 export default function ProfilePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: userProfile, isLoading, isError } = useUserProfile();
-  const [avatarProfile, setAvatarProfile] = useState<AvatarProfile>(loadStoredAvatar);
   const [isEditing, setIsEditing] = useState(false);
   const [draftProfile, setDraftProfile] = useState<EditableProfile | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const profile = userProfile && "nama" in userProfile ? userProfile : null;
@@ -102,20 +80,34 @@ export default function ProfilePage() {
     setIsEditing(true);
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    event.target.value = "";
+
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const avatarUrl = reader.result as string;
-      setAvatarProfile((prev) => {
-        const updated = { ...prev, avatarUrl };
-        localStorage.setItem("arkadaya_profile_avatar", JSON.stringify(updated));
-        return updated;
-      });
-    };
-    reader.readAsDataURL(file);
+    setAvatarMessage("");
+    setIsUploadingAvatar(true);
+
+    try {
+      const result = await uploadUserProfileAvatar(file);
+
+      if (!result.success) {
+        throw new Error(result.error ?? "Foto profil gagal diunggah.");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      setAvatarMessage("Foto profil berhasil diperbarui.");
+    } catch (error) {
+      console.error("gagal upload avatar customer:", error);
+      setAvatarMessage(
+        error instanceof Error
+          ? error.message
+          : "Foto profil gagal diunggah. Silakan coba lagi.",
+      );
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -173,18 +165,24 @@ export default function ProfilePage() {
 
         <div className="no-scrollbar flex-1 overflow-y-auto py-4">
           <div className="relative mx-auto mb-5 h-32 w-32">
-            <div className="h-full w-full overflow-hidden rounded-full border-4 border-[#05336b]/10 bg-slate-100 shadow-md">
-              <img
-                src={avatarProfile.avatarUrl}
-                alt="Avatar"
-                className="h-full w-full object-cover"
-              />
-            </div>
+            <ProfileAvatar
+              key={profile?.avatarUrl ?? "customer-avatar-placeholder"}
+              src={profile?.avatarUrl}
+              alt="Avatar"
+              wrapperClassName="h-full w-full overflow-hidden rounded-full border-4 border-[#05336b]/10 bg-slate-100 shadow-md flex items-center justify-center"
+              imageClassName="h-full w-full object-cover"
+              iconClassName="h-14 w-14 text-[#05336b]/35"
+            />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full border border-[#05336b] bg-[#75b2ce] text-slate-800 shadow-md transition-all hover:bg-[#64a1bd] active:scale-[0.9]"
+              disabled={isUploadingAvatar}
+              className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full border border-[#05336b] bg-[#75b2ce] text-slate-800 shadow-md transition-all hover:bg-[#64a1bd] active:scale-[0.9] disabled:cursor-not-allowed disabled:bg-[#a9c9d8] disabled:active:scale-100"
             >
-              <Pencil size={16} strokeWidth={2.2} />
+              {isUploadingAvatar ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#05336b]/30 border-t-[#05336b]" />
+              ) : (
+                <Pencil size={16} strokeWidth={2.2} />
+              )}
             </button>
             <input
               type="file"
@@ -193,6 +191,27 @@ export default function ProfilePage() {
               accept="image/*"
               className="hidden"
             />
+          </div>
+          <div className="mb-5 px-4 text-center">
+            <p className="text-xs font-medium text-slate-400">
+              JPG, PNG, WEBP, GIF, AVIF. Maksimal 3 MB.
+            </p>
+            {isUploadingAvatar ? (
+              <p className="mt-1 text-xs font-semibold text-[#05336b]">
+                Mengunggah foto profil...
+              </p>
+            ) : null}
+            {avatarMessage ? (
+              <p
+                className={`mt-1 text-xs font-semibold ${
+                  avatarMessage.includes("berhasil")
+                    ? "text-green-600"
+                    : "text-red-500"
+                }`}
+              >
+                {avatarMessage}
+              </p>
+            ) : null}
           </div>
 
           <div className="mb-8 px-4 text-center">

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Bell, User, Menu } from "lucide-react";
+import { Search, Bell, Menu } from "lucide-react";
 import NotificationPanel from "@/components/dashboard/NotificationPanel";
 import { useAdminNotifications } from "@/hook/useAdminNotifications";
 import { useUserProfile } from "@/hook/useUserProfile";
+import ProfileAvatar from "@/components/shared/ProfileAvatar";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -68,9 +69,18 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
               </p>
               <p className="text-xs text-gray-500">{profile.role}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 border-2 border-white shadow-sm">
-              <User className="w-6 h-6" />
-            </div>
+            <ProfileAvatar
+              key={
+                profileData && "avatarUrl" in profileData && profileData.avatarUrl
+                  ? profileData.avatarUrl
+                  : "header-avatar-placeholder"
+              }
+              src={profileData && "avatarUrl" in profileData ? profileData.avatarUrl : null}
+              alt="Foto profil admin"
+              wrapperClassName="w-10 h-10 overflow-hidden rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-white shadow-sm"
+              imageClassName="h-full w-full object-cover"
+              iconClassName="w-6 h-6"
+            />
           </Link>
         </div>
       </header>
