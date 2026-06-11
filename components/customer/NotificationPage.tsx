@@ -72,7 +72,7 @@ export default function NotificationPage() {
 
             {isError ? (
               <div className="rounded-[24px] border border-red-100 bg-red-50 p-5 text-sm font-semibold text-red-500">
-                Gagal memuat notifikasi dari Supabase.
+                Gagal memuat notifikasi. Silakan coba lagi.
               </div>
             ) : null}
 

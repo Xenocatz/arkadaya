@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { logAppError } from "@/utils/error-message";
 
 const supabase = createClient();
 
@@ -90,7 +91,7 @@ export async function getLaporanList() {
     .select("no_resi, nama_pengirim, nama_penerima, driver, status, created_at");
 
   if (error) {
-    console.error("Supabase fetch error:", error.message);
+    logAppError("Get report list failed", error);
     return {
       success: false,
       error: error.message,

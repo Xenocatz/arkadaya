@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react";
 import { CUSTOMER_ROUTES } from "@/components/customer/routes";
 import { addUserProfiles, signUpNewUser } from "@/service/auth.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -30,16 +34,41 @@ export default function RegisterForm() {
     setErrorMessage("");
 
     try {
-      const signUpResult = await signUpNewUser(formData.email.trim(), formData.password);
+      const username = formData.username.trim();
+      const phone = formData.phone.trim();
+      const email = formData.email.trim().toLowerCase();
+      const password = formData.password.trim();
+
+      if (!username) {
+        setErrorMessage("Nama pengguna wajib diisi.");
+        return;
+      }
+
+      if (!phone) {
+        setErrorMessage("Nomor telepon wajib diisi.");
+        return;
+      }
+
+      if (!email) {
+        setErrorMessage("Email wajib diisi.");
+        return;
+      }
+
+      if (!password) {
+        setErrorMessage("Kata sandi wajib diisi.");
+        return;
+      }
+
+      const signUpResult = await signUpNewUser(email, password);
 
       if (!signUpResult.success) {
         throw new Error(signUpResult.error);
       }
 
       const profileResult = await addUserProfiles(
-        formData.username.trim(),
-        formData.email.trim(),
-        formData.phone.trim(),
+        username,
+        email,
+        phone,
       );
 
       if (!profileResult.success) {
@@ -52,10 +81,8 @@ export default function RegisterForm() {
         router.push(CUSTOMER_ROUTES.login);
       }, 1200);
     } catch (error) {
-      console.error("gagal signUp customer:", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Pendaftaran gagal. Silakan coba lagi.",
-      );
+      logAppError("Customer sign up failed", error);
+      setErrorMessage(getUserFriendlyErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

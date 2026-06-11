@@ -11,6 +11,10 @@ import {
   type PengirimanFormInput,
 } from "@/service/pengiriman.service";
 import { getDriverProfiles } from "@/service/driver.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 import { generateNoResi } from "@/utils/format";
 
 const EMPTY_ADDRESS: AddressValue = {
@@ -61,7 +65,11 @@ export default function TambahPengirimanModal({
       }
 
       if (!result.success) {
-        setError(result.error ?? "Gagal memuat daftar driver");
+        setError(
+          result.error
+            ? getUserFriendlyErrorMessage(result.error)
+            : "Gagal memuat daftar driver.",
+        );
         setDriverNames([]);
         setIsLoadingDrivers(false);
         return;
@@ -110,6 +118,36 @@ export default function TambahPengirimanModal({
     e.preventDefault();
     setError("");
 
+    if (!form.noResi.trim()) {
+      setError("Nomor resi tidak boleh kosong.");
+      return;
+    }
+
+    if (!form.namaPengirim.trim()) {
+      setError("Nama pengirim wajib diisi.");
+      return;
+    }
+
+    if (!form.noTelpPengirim.trim()) {
+      setError("Nomor telepon pengirim wajib diisi.");
+      return;
+    }
+
+    if (!form.vendor.trim()) {
+      setError("Vendor wajib diisi.");
+      return;
+    }
+
+    if (!form.namaPenerima.trim()) {
+      setError("Nama penerima wajib diisi.");
+      return;
+    }
+
+    if (!form.noTelpPenerima.trim()) {
+      setError("Nomor telepon penerima wajib diisi.");
+      return;
+    }
+
     const driverInput = form.driver.trim();
     const driverTersedia = driverNames.some(
       (namaDriver) => namaDriver.toLowerCase() === driverInput.toLowerCase(),
@@ -121,17 +159,17 @@ export default function TambahPengirimanModal({
     }
 
     if (!driverTersedia) {
-      setError("Nama driver harus terdaftar pada tabel profiles.");
+      setError("Nama driver harus dipilih dari daftar driver yang tersedia.");
       return;
     }
 
     if (!alamatAsalValid) {
-      setError("Alamat asal wajib dipilih dari suggestion alamat.");
+      setError("Alamat asal wajib dipilih dari daftar saran alamat.");
       return;
     }
 
     if (!alamatTujuanValid) {
-      setError("Alamat tujuan wajib dipilih dari suggestion alamat.");
+      setError("Alamat tujuan wajib dipilih dari daftar saran alamat.");
       return;
     }
 
@@ -162,7 +200,12 @@ export default function TambahPengirimanModal({
       setForm(createEmptyForm());
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+      logAppError("Create shipment from modal failed", err);
+      setError(
+        err
+          ? getUserFriendlyErrorMessage(err)
+          : "Gagal menyimpan data pengiriman. Periksa kembali isian formulir.",
+      );
     } finally {
       setIsSaving(false);
     }

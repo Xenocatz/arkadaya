@@ -10,6 +10,10 @@ import ProfileAvatar from "@/components/shared/ProfileAvatar";
 import { signOut } from "@/service/auth.service";
 import { useUserProfile } from "@/hook/useUserProfile";
 import { updateUserProfile, uploadUserProfileAvatar } from "@/service/profile.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 interface EditableProfile {
   nama: string;
@@ -62,10 +66,9 @@ export default function ProfilePage() {
         await queryClient.invalidateQueries({ queryKey: ["user-profile"] });
         setIsEditing(false);
         setDraftProfile(null);
-        window.alert("Profil berhasil diperbarui!");
       } catch (error) {
-        console.error("gagal update profil customer:", error);
-        window.alert("Profil gagal diperbarui. Silakan coba lagi.");
+        logAppError("Update customer profile failed", error);
+        window.alert(getUserFriendlyErrorMessage(error));
       } finally {
         setIsSaving(false);
       }
@@ -99,11 +102,9 @@ export default function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setAvatarMessage("Foto profil berhasil diperbarui.");
     } catch (error) {
-      console.error("gagal upload avatar customer:", error);
+      logAppError("Upload customer profile avatar failed", error);
       setAvatarMessage(
-        error instanceof Error
-          ? error.message
-          : "Foto profil gagal diunggah. Silakan coba lagi.",
+        getUserFriendlyErrorMessage(error),
       );
     } finally {
       setIsUploadingAvatar(false);
@@ -122,8 +123,8 @@ export default function ProfilePage() {
 
       router.push(CUSTOMER_ROUTES.login);
     } catch (error) {
-      console.error("gagal logout customer:", error);
-      window.alert("Logout gagal. Silakan coba lagi.");
+      logAppError("Customer logout failed", error);
+      window.alert(getUserFriendlyErrorMessage(error));
     } finally {
       setIsSigningOut(false);
     }
@@ -220,7 +221,7 @@ export default function ProfilePage() {
             ) : null}
             {isError ? (
               <p className="text-sm font-semibold text-red-500">
-                Gagal memuat data profil dari Supabase.
+                Gagal memuat data profil. Silakan coba lagi.
               </p>
             ) : null}
             {isEditing ? (

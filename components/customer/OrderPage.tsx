@@ -20,6 +20,7 @@ import {
 import { CUSTOMER_ROUTES } from "@/components/customer/routes";
 import { useCustomerDashboard } from "@/hook/useCustomerDashboard";
 import type { CustomerOrder } from "@/service/customer-dashboard.service";
+import { getUserFriendlyErrorMessage } from "@/utils/error-message";
 
 const renderTimelineIcon = (iconName: string) => {
   switch (iconName) {
@@ -58,7 +59,9 @@ export default function OrderPage() {
     );
 
     if (!foundOrder) {
-      setSearchError("Nomor resi tidak ditemukan di akun Anda.");
+      setSearchError(
+        "Nomor resi tidak ditemukan. Periksa kembali nomor resi Anda.",
+      );
       return;
     }
 
@@ -221,9 +224,9 @@ export default function OrderPage() {
 
           {isError ? (
             <div className="rounded-[24px] border border-red-100 bg-red-50 p-5 text-sm font-semibold text-red-500">
-              {error instanceof Error
-                ? `Gagal memuat dashboard customer: ${error.message}`
-                : "Gagal memuat dashboard customer."}
+              {error
+                ? getUserFriendlyErrorMessage(error)
+                : "Gagal memuat informasi pengiriman. Silakan coba lagi."}
             </div>
           ) : null}
 

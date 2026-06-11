@@ -17,6 +17,10 @@ import {
   updateDriverProfile,
   type DriverProfile,
 } from "@/service/driver.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 export default function DriverPage() {
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
@@ -44,7 +48,7 @@ export default function DriverPage() {
     const result = await getDriverProfiles();
 
     if (!result.success) {
-      setError(result.error ?? "Gagal memuat data driver");
+      setError(getUserFriendlyErrorMessage(result.error) || "Gagal memuat data driver.");
       setDrivers([]);
       setIsLoading(false);
       return;
@@ -65,7 +69,7 @@ export default function DriverPage() {
       }
 
       if (!result.success) {
-        setError(result.error ?? "Gagal memuat data driver");
+        setError(getUserFriendlyErrorMessage(result.error) || "Gagal memuat data driver.");
         setDrivers([]);
         setIsLoading(false);
         return;
@@ -156,7 +160,8 @@ export default function DriverPage() {
 
       setEditingDriver(null);
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : "Terjadi kesalahan");
+      logAppError("Update driver from admin page failed", err);
+      setEditError("Gagal memperbarui data driver.");
     } finally {
       setIsSavingEdit(false);
     }

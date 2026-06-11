@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { addUserProfiles, signUpNewUser } from "@/service/auth.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 interface SignUpFormProps {
   mobile?: boolean;
@@ -29,9 +33,34 @@ export function SignUpForm({ mobile = false }: SignUpFormProps) {
     const data = Object.fromEntries(formData.entries());
 
     try {
+      const name = data.name.toString().trim();
+      const phone = data.phone.toString().trim();
+      const email = data.email.toString().trim().toLowerCase();
+      const password = data.password.toString().trim();
+
+      if (!name) {
+        setErrorMessage("Nama pengguna wajib diisi.");
+        return;
+      }
+
+      if (!phone) {
+        setErrorMessage("Nomor telepon wajib diisi.");
+        return;
+      }
+
+      if (!email) {
+        setErrorMessage("Email wajib diisi.");
+        return;
+      }
+
+      if (!password) {
+        setErrorMessage("Kata sandi wajib diisi.");
+        return;
+      }
+
       const signUpResult = await signUpNewUser(
-        data.email as string,
-        data.password as string,
+        email,
+        password,
       );
 
       if (!signUpResult.success) {
@@ -39,9 +68,9 @@ export function SignUpForm({ mobile = false }: SignUpFormProps) {
       }
 
       const profileResult = await addUserProfiles(
-        data.name as string,
-        data.email as string,
-        data.phone as string,
+        name,
+        email,
+        phone,
       );
 
       if (!profileResult.success) {
@@ -54,10 +83,8 @@ export function SignUpForm({ mobile = false }: SignUpFormProps) {
         router.push("/signin");
       }, 1200);
     } catch (error) {
-      console.error("gagal signUp: ", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Pendaftaran gagal. Silakan coba lagi.",
-      );
+      logAppError("Admin sign up failed", error);
+      setErrorMessage(getUserFriendlyErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

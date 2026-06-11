@@ -7,6 +7,10 @@ import {
   type AddressResult,
 } from "@/service/photon.service";
 import { reverseGeocodeAddress } from "@/service/nominatim.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 export interface AddressValue {
   address: string;
@@ -74,11 +78,8 @@ export default function AddressAutocomplete({
         }
 
         setSuggestions([]);
-        setFetchError(
-          error instanceof Error
-            ? error.message
-            : "Gagal memuat suggestion alamat.",
-        );
+        logAppError("Address autocomplete search failed", error);
+        setFetchError(getUserFriendlyErrorMessage(error));
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
@@ -131,15 +132,14 @@ export default function AddressAutocomplete({
         return;
       }
 
+      logAppError("Address reverse geocode failed", error);
       onChangeRef.current({
         address: suggestion.label,
         lat: suggestion.latitude,
         lng: suggestion.longitude,
       });
       setHelperMessage(
-        error instanceof Error
-          ? `${error.message} Label alamat memakai hasil Photon.`
-          : "Label alamat memakai hasil Photon.",
+        "Alamat lengkap belum tersedia. Label alamat sementara memakai hasil pencarian.",
       );
     } finally {
       if (!controller.signal.aborted) {
@@ -204,7 +204,7 @@ export default function AddressAutocomplete({
               </div>
             ) : suggestions.length === 0 ? (
               <div className="px-4 py-3 text-sm text-gray-500">
-                Alamat di Indonesia tidak ditemukan. Coba kata kunci lain.
+                Alamat tidak ditemukan di wilayah Indonesia.
               </div>
             ) : (
               suggestions.map((suggestion) => (
@@ -238,7 +238,7 @@ export default function AddressAutocomplete({
 
       {!fetchError && showSelectionWarning ? (
         <p className="text-xs text-amber-600">
-          Pilih alamat dari suggestion agar koordinat tersimpan.
+          Pilih alamat dari daftar saran agar koordinat tersimpan.
         </p>
       ) : null}
 

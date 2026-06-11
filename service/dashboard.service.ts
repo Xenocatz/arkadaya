@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ShipmentTableItem } from "@/components/dashboard/ShipmentTable";
+import { logAppError } from "@/utils/error-message";
 
 interface PengirimanDashboardRow {
   no_resi?: string | null;
@@ -73,7 +74,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     .select("no_resi, nama_pengirim, alamat_tujuan, status, created_at");
 
   if (error) {
-    console.error("Supabase fetch error:", error.message);
+    logAppError("Get admin dashboard data failed", error);
     return {
       totalPengiriman: 0,
       totalDalamPengiriman: 0,

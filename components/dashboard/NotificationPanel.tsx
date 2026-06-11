@@ -85,7 +85,7 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
 
           {isError ? (
             <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-500">
-              Gagal memuat notifikasi dari Supabase.
+              Gagal memuat notifikasi. Silakan coba lagi.
             </div>
           ) : null}
 

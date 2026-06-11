@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { logAppError } from "@/utils/error-message";
 
 const supabase = createClient();
 
@@ -174,7 +175,7 @@ export async function getPengirimanList() {
   `);
 
   if (error) {
-    console.error("Supabase fetch error:", error.message);
+    logAppError("Get shipment list failed", error);
     return {
       success: false,
       error: error.message,
@@ -208,7 +209,7 @@ export async function addPengiriman(data: PengirimanInput) {
   });
 
   if (error) {
-    console.error("Supabase insert error:", error.message);
+    logAppError("Create shipment failed", error);
     return { success: false, error: error.message };
   }
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { logAppError } from "@/utils/error-message";
 
 const supabase = createClient();
 
@@ -24,7 +25,7 @@ export async function getDriverProfiles() {
     .order("nama", { ascending: true });
 
   if (error) {
-    console.error("Supabase fetch error:", error.message);
+    logAppError("Get driver profiles failed", error);
     return {
       success: false,
       error: error.message,
@@ -85,7 +86,7 @@ export async function updateDriverProfile(
     .eq("id", id);
 
   if (error) {
-    console.error("Supabase update error:", error.message);
+    logAppError("Update driver profile failed", error);
     return { success: false, error: error.message };
   }
 

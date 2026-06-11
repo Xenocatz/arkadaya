@@ -11,6 +11,10 @@ import {
   uploadUserProfileAvatar,
 } from "@/service/profile.service";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 interface PROFIL_DATA {
   id: string;
@@ -88,7 +92,8 @@ export default function ProfilPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      console.log(e);
+      logAppError("Update admin profile failed", e);
+      setAvatarMessage("Gagal memperbarui profil.");
     }
   };
 
@@ -124,12 +129,8 @@ export default function ProfilPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
-      console.error("gagal upload avatar admin:", error);
-      setAvatarMessage(
-        error instanceof Error
-          ? error.message
-          : "Foto profil gagal diunggah. Silakan coba lagi.",
-      );
+      logAppError("Upload admin profile avatar failed", error);
+      setAvatarMessage(getUserFriendlyErrorMessage(error));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -143,7 +144,7 @@ export default function ProfilPage() {
         router.push("/signin");
       }
     } catch (e) {
-      console.log(e);
+      logAppError("Admin logout failed", e);
     }
   };
 

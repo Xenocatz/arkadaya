@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { logAppError } from "@/utils/error-message";
 
 const supabase = createClient();
 
@@ -16,7 +17,7 @@ export async function signUpNewUser(email: string, password: string) {
   });
 
   if (error) {
-    console.error("Supabase Auth Error:", error.message);
+    logAppError("Sign up auth failed", error);
     return { success: false, error: error.message };
   }
 
@@ -31,7 +32,7 @@ export async function signInUser(email: string, password: string) {
   });
 
   if (error) {
-    console.error("Supabase Auth Error:", error.message);
+    logAppError("Sign in auth failed", error);
     return { success: false, error: error.message };
   }
 
@@ -52,7 +53,7 @@ export async function addUserProfiles(
   });
 
   if (error) {
-    console.error("Supabase insert error:", error.message);
+    logAppError("Create user profile failed", error);
     return { success: false, error: error.message };
   }
 
@@ -68,7 +69,7 @@ export async function getProfileByEmail(email: string) {
     .single();
 
   if (error) {
-    console.error("Supabase select error:", error.message);
+    logAppError("Get profile by email failed", error);
     return { success: false, error: error.message };
   }
 
@@ -79,7 +80,7 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
 
   if (error) {
-    console.error("Supabase Auth Error:", error.message);
+    logAppError("Sign out failed", error);
     return { success: false, error: error.message };
   }
 
@@ -90,7 +91,7 @@ export async function getCurrentAuthProfile() {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError) {
-    console.error("Supabase Auth Error:", authError.message);
+    logAppError("Get current auth user failed", authError);
     return { success: false, error: authError.message };
   }
 
@@ -107,7 +108,7 @@ export async function getCurrentAuthProfile() {
     .single<AuthProfile>();
 
   if (error) {
-    console.error("Supabase select error:", error.message);
+    logAppError("Get current auth profile failed", error);
     return { success: false, error: error.message };
   }
 

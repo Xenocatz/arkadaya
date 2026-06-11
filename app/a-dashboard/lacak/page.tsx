@@ -12,6 +12,7 @@ import {
   getPengirimanList,
   type PengirimanItem,
 } from "@/service/pengiriman.service";
+import { getUserFriendlyErrorMessage } from "@/utils/error-message";
 
 const TrackingMap = dynamic(
   () => import("@/components/tracking/TrackingMap"),
@@ -87,7 +88,11 @@ export default function LacakPaketPage() {
       }
 
       if (!result.success) {
-        setError(result.error ?? "Gagal memuat data lacak paket");
+        setError(
+          result.error
+            ? getUserFriendlyErrorMessage(result.error)
+            : "Gagal memuat informasi pengiriman. Silakan coba lagi.",
+        );
         setDataLacak([]);
         setIsLoading(false);
         return;

@@ -1,3 +1,5 @@
+import { logAppError } from "@/utils/error-message";
+
 export type AddressResult = {
   id: string;
   label: string;
@@ -49,18 +51,25 @@ export async function searchAddress(
     return [];
   }
 
-  const response = await fetch(
-    "https://photon.komoot.io/api/" +
-      `?q=${encodeURIComponent(`${trimmedQuery}, Indonesia`)}` +
-      "&limit=10",
-    {
-      method: "GET",
-      signal,
-      headers: {
-        Accept: "application/json",
+  let response: Response;
+
+  try {
+    response = await fetch(
+      "https://photon.komoot.io/api/" +
+        `?q=${encodeURIComponent(`${trimmedQuery}, Indonesia`)}` +
+        "&limit=10",
+      {
+        method: "GET",
+        signal,
+        headers: {
+          Accept: "application/json",
+        },
       },
-    },
-  );
+    );
+  } catch (error) {
+    logAppError("Photon address search failed", error);
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error("Gagal mengambil suggestion alamat dari Photon API.");

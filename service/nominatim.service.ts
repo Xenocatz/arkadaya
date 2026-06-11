@@ -1,3 +1,5 @@
+import { logAppError } from "@/utils/error-message";
+
 export type ReverseGeocodeResult = {
   label: string;
   latitude: number;
@@ -27,16 +29,23 @@ export async function reverseGeocodeAddress(
     "accept-language": "id",
   });
 
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?${searchParams.toString()}`,
-    {
-      method: "GET",
-      signal,
-      headers: {
-        Accept: "application/json",
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?${searchParams.toString()}`,
+      {
+        method: "GET",
+        signal,
+        headers: {
+          Accept: "application/json",
+        },
       },
-    },
-  );
+    );
+  } catch (error) {
+    logAppError("Nominatim reverse geocode failed", error);
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error("Gagal mengambil label alamat dari Nominatim.");

@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { getProfileByEmail, signInUser } from "@/service/auth.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 interface SignInFormProps {
   mobile?: boolean;
@@ -29,7 +33,14 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
 
     try {
       const email = data.email.toString().trim().toLowerCase();
-      const signInResult = await signInUser(email, data.password as string);
+      const password = data.password.toString().trim();
+
+      if (!email || !password) {
+        setErrorMessage("Email dan kata sandi wajib diisi.");
+        return;
+      }
+
+      const signInResult = await signInUser(email, password);
 
       if (!signInResult.success) {
         throw new Error(signInResult.error);
@@ -54,10 +65,8 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
           router.push("/u-dashboard");
       }
     } catch (error) {
-      console.error("gagal signIn: ", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Login gagal. Silakan coba lagi.",
-      );
+      logAppError("Admin sign in failed", error);
+      setErrorMessage(getUserFriendlyErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

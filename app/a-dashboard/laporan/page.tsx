@@ -9,6 +9,7 @@ import {
   type LaporanItem,
   type StatusLaporan,
 } from "@/service/laporan.service";
+import { getUserFriendlyErrorMessage } from "@/utils/error-message";
 
 const statusOptions: Array<StatusLaporan | "Semua"> = [
   "Semua",
@@ -57,7 +58,11 @@ export default function LaporanPage() {
       }
 
       if (!result.success) {
-        setError(result.error ?? "Gagal memuat laporan");
+        setError(
+          result.error
+            ? getUserFriendlyErrorMessage(result.error)
+            : "Gagal memuat laporan.",
+        );
         setLaporan([]);
         setIsLoading(false);
         return;

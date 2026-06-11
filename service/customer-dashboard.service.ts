@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/client";
+import { logAppError } from "@/utils/error-message";
 
 const supabase = createClient();
+const SUPABASE_PUBLIC_URL = (
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
+).trim().replace(/\/$/, "");
+const PROOF_OF_DELIVERY_BUCKET = "bukti_pengiriman";
 
 type NullableString = string | null | undefined;
 
@@ -22,6 +27,10 @@ interface DetailPengirimanRow {
   catatan_pengiriman?: NullableString;
   created_at?: NullableString;
   updated_at?: NullableString;
+}
+
+interface BuktiPengirimanRow {
+  path_foto?: NullableString;
 }
 
 interface TrackingPengirimanRow {
@@ -51,6 +60,7 @@ interface PengirimanRow {
   vendor?: NullableString;
   detail_pengiriman?: DetailPengirimanRow | DetailPengirimanRow[] | null;
   tracking_pengiriman?: TrackingPengirimanRow[] | null;
+  bukti_pengiriman?: BuktiPengirimanRow[] | null;
 }
 
 export interface CustomerOrder {
@@ -68,6 +78,7 @@ export interface CustomerOrder {
   status: "On Progress" | "Delivered";
   statusLabel: string;
   estimatedArrival: string | null;
+  proofPhotoUrls: string[];
   goodsReceiptUrl: string | null;
   deliveryInvoiceUrl: string | null;
   notes: string | null;
@@ -199,6 +210,33 @@ function getDetailRow(row: PengirimanRow) {
   return row.detail_pengiriman ?? null;
 }
 
+function resolveProofPhotoUrl(path?: NullableString) {
+  if (!path) {
+    return null;
+  }
+
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  if (!SUPABASE_PUBLIC_URL) {
+    return path;
+  }
+
+  const normalizedPath = path.replace(/^\/+/, "");
+  return `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${PROOF_OF_DELIVERY_BUCKET}/${normalizedPath}`;
+}
+
+function getProofPhotoUrls(row: PengirimanRow) {
+  const proofRows = row.bukti_pengiriman ?? [];
+
+  return [...proofRows]
+    .reverse()
+    .map((item) => resolveProofPhotoUrl(item.path_foto))
+    .filter((item): item is string => Boolean(item))
+    .slice(0, 3);
+}
+
 function buildTimelineFromTracking(
   trackingRows: TrackingPengirimanRow[],
   detail: DetailPengirimanRow | null,
@@ -291,6 +329,7 @@ function mapOrder(row: PengirimanRow): CustomerOrder {
   const detail = getDetailRow(row);
   const trackingRows = row.tracking_pengiriman ?? [];
   const shipmentStatus = normalizeShipmentStatus(row.status);
+  const proofPhotoUrls = getProofPhotoUrls(row);
 
   return {
     id: String(row.id_pengiriman ?? row.no_resi ?? "-"),
@@ -307,8 +346,9 @@ function mapOrder(row: PengirimanRow): CustomerOrder {
     status: shipmentStatus.status,
     statusLabel: shipmentStatus.label,
     estimatedArrival: formatDateTime(detail?.estimasi_sampai),
-    goodsReceiptUrl: detail?.goods_receipt_url ?? null,
-    deliveryInvoiceUrl: detail?.delivery_invoice_url ?? null,
+    proofPhotoUrls,
+    goodsReceiptUrl: proofPhotoUrls[0] ?? detail?.goods_receipt_url ?? null,
+    deliveryInvoiceUrl: null,
     notes: detail?.catatan_pengiriman ?? null,
     timeline: buildTimelineFromTracking(
       trackingRows,
@@ -351,6 +391,7 @@ async function getCurrentCustomerProfile(): Promise<CustomerProfile> {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError) {
+    logAppError("Get customer auth user failed", authError);
     throw new Error(authError.message);
   }
 
@@ -367,6 +408,7 @@ async function getCurrentCustomerProfile(): Promise<CustomerProfile> {
     .single();
 
   if (profileError) {
+    logAppError("Get customer profile failed", profileError);
     throw new Error(profileError.message);
   }
 
@@ -416,6 +458,9 @@ export async function getCustomerDashboardData(): Promise<CustomerDashboardData>
         created_at,
         updated_at
       ),
+      bukti_pengiriman (
+        path_foto
+      ),
       tracking_pengiriman (
         id_tracking,
         id_pengiriman,
@@ -430,6 +475,7 @@ export async function getCustomerDashboardData(): Promise<CustomerDashboardData>
     .eq("nama_penerima", namaCustomer);
 
   if (error) {
+    logAppError("Get customer dashboard data failed", error);
     throw new Error(error.message);
   }
 

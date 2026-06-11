@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { CUSTOMER_ROUTES } from "@/components/customer/routes";
 import { getProfileByEmail, signInUser } from "@/service/auth.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -30,6 +34,12 @@ export default function LoginForm() {
 
     try {
       const email = formData.email.trim().toLowerCase();
+
+      if (!email || !formData.password.trim()) {
+        setErrorMessage("Email dan kata sandi wajib diisi.");
+        return;
+      }
+
       const signInResult = await signInUser(email, formData.password);
 
       if (!signInResult.success) {
@@ -55,10 +65,8 @@ export default function LoginForm() {
         router.push(CUSTOMER_ROUTES.order);
       }, 600);
     } catch (error) {
-      console.error("gagal signIn customer:", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Login gagal. Silakan coba lagi.",
-      );
+      logAppError("Customer sign in failed", error);
+      setErrorMessage(getUserFriendlyErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

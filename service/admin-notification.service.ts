@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { logAppError } from "@/utils/error-message";
 
 const supabase = createClient();
 
@@ -166,6 +167,7 @@ export async function getAdminNotifications(): Promise<AdminNotificationItem[]> 
     );
 
   if (error) {
+    logAppError("Get admin notifications failed", error);
     throw new Error(error.message);
   }
 

@@ -4,6 +4,10 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import { addDriverProfile } from "@/service/driver.service";
+import {
+  getUserFriendlyErrorMessage,
+  logAppError,
+} from "@/utils/error-message";
 
 interface FormTambahDriver {
   nama: string;
@@ -33,6 +37,21 @@ export default function TambahDriverPage() {
     setError("");
 
     try {
+      if (!form.nama.trim()) {
+        setError("Nama driver wajib diisi.");
+        return;
+      }
+
+      if (!form.email.trim()) {
+        setError("Email driver wajib diisi.");
+        return;
+      }
+
+      if (!form.no_hp.trim()) {
+        setError("Nomor telepon driver wajib diisi.");
+        return;
+      }
+
       const result = await addDriverProfile({
         nama: form.nama.trim(),
         email: form.email.trim(),
@@ -46,7 +65,8 @@ export default function TambahDriverPage() {
       router.push("/a-dashboard/driver");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+      logAppError("Create driver failed", err);
+      setError(getUserFriendlyErrorMessage(err));
     } finally {
       setIsSaving(false);
     }

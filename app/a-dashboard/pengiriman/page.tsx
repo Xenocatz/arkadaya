@@ -16,6 +16,7 @@ import {
   type PengirimanItem,
 } from "@/service/pengiriman.service";
 import TambahPengirimanModal from "./tambah/TambahPengirimanModal";
+import { getUserFriendlyErrorMessage } from "@/utils/error-message";
 const statusOptions = ["Semua", "In Transit", "Terkirim", "Pending", "Selesai"];
 
 export default function PengirimanPage() {
@@ -33,9 +34,13 @@ export default function PengirimanPage() {
     result:
       | Awaited<ReturnType<typeof getPengirimanList>>
       | { success: false; error?: string; data?: PengirimanItem[] },
-  ) => {
+    ) => {
     if (!result.success) {
-      setError(result.error ?? "Gagal memuat data pengiriman");
+      setError(
+        result.error
+          ? getUserFriendlyErrorMessage(result.error)
+          : "Gagal memuat data pengiriman.",
+      );
       setPengiriman([]);
       setIsLoading(false);
       return;

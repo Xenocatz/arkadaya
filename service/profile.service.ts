@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { logAppError } from "@/utils/error-message";
 
 const supabase = createClient();
 const PROFILE_AVATAR_BUCKET = "profile_avatar";
@@ -158,7 +159,7 @@ async function getCurrentProfileRow(): Promise<CurrentProfileResult> {
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError) {
-    console.error("Supabase Auth Error:", authError.message);
+    logAppError("Get current profile auth failed", authError);
     return { success: false, error: authError.message };
   }
 
@@ -171,7 +172,7 @@ async function getCurrentProfileRow(): Promise<CurrentProfileResult> {
   const { data: profileData, error: profileError } = await selectProfileByEmail(email);
 
   if (profileError) {
-    console.error("Supabase select error:", profileError.message);
+    logAppError("Get current profile row failed", profileError);
     return { success: false, error: profileError.message };
   }
 
@@ -201,7 +202,7 @@ export async function updateUserProfile(nama: string, no_hp: string) {
   );
 
   if (profileError) {
-    console.error("Supabase update error:", profileError.message);
+    logAppError("Update user profile failed", profileError);
     return { success: false, error: profileError.message };
   }
 
@@ -251,7 +252,7 @@ export async function uploadUserProfileAvatar(file: File) {
       .remove(filesToDelete);
 
     if (removeError) {
-      console.warn("Supabase storage remove warning:", removeError.message);
+      logAppError("Remove previous profile avatar failed", removeError);
     }
   }
 
@@ -263,7 +264,7 @@ export async function uploadUserProfileAvatar(file: File) {
     });
 
   if (uploadError) {
-    console.error("Supabase storage upload error:", uploadError.message);
+    logAppError("Upload profile avatar failed", uploadError);
     return { success: false, error: uploadError.message };
   }
 
@@ -283,7 +284,7 @@ export async function uploadUserProfileAvatar(file: File) {
       };
     }
 
-    console.error("Supabase update error:", profileError.message);
+    logAppError("Save profile avatar url failed", profileError);
     return { success: false, error: profileError.message };
   }
 
