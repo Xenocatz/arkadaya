@@ -74,7 +74,7 @@ export default function OrderPage() {
   if (showLiveMap) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-0 sm:p-4 md:p-8">
-        <div className="relative flex min-h-screen w-full max-w-[390px] flex-col overflow-hidden border border-slate-100 bg-white transition-all duration-500 sm:my-4 sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[36px] sm:shadow-2xl">
+        <div className="relative flex min-h-screen w-full max-w-none sm:max-w-md lg:max-w-2xl flex-col overflow-hidden border border-slate-100 bg-white transition-all duration-500 sm:my-4 sm:min-h-[calc(100vh-2rem)] sm:rounded-[36px] sm:shadow-2xl">
           <div className="absolute inset-0 h-full w-full select-none">
             <Image
               src="/covent_garden_map.png"
@@ -165,7 +165,7 @@ export default function OrderPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-0 sm:p-4 md:p-8">
-      <div className="relative flex min-h-screen w-full max-w-[390px] flex-col justify-between overflow-hidden border border-slate-100 bg-white p-6 transition-all duration-500 sm:my-4 sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[36px] sm:shadow-2xl">
+      <div className="relative flex min-h-screen w-full max-w-none sm:max-w-md lg:max-w-2xl flex-col justify-between overflow-hidden border border-slate-100 bg-white p-6 transition-all duration-500 sm:my-4 sm:min-h-[calc(100vh-2rem)] sm:rounded-[36px] sm:shadow-2xl">
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center gap-1.5">
             <svg

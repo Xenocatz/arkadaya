@@ -4,14 +4,16 @@ import Link from "next/link";
 import { ArrowLeft, User } from "lucide-react";
 import { CUSTOMER_ROUTES } from "@/components/customer/routes";
 import { useCustomerDashboard } from "@/hook/useCustomerDashboard";
+import { useRouter } from "next/navigation";
 
 export default function NotificationPage() {
+  const router = useRouter();
   const { data, isLoading, isError } = useCustomerDashboard();
   const notifications = data?.notifications ?? [];
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-0 sm:p-4 md:p-8">
-      <div className="relative flex min-h-screen w-full max-w-[390px] flex-col justify-between overflow-hidden border border-slate-100 bg-white transition-all duration-500 sm:my-4 sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[36px] sm:shadow-2xl">
+      <div className="relative flex min-h-screen w-full max-w-none sm:max-w-md lg:max-w-2xl flex-col justify-between overflow-hidden border border-slate-100 bg-white transition-all duration-500 sm:my-4 sm:min-h-[calc(100vh-2rem)] sm:rounded-[36px] sm:shadow-2xl">
         <div className="shrink-0 select-none border-b border-slate-50 bg-white px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -52,12 +54,12 @@ export default function NotificationPage() {
 
         <div className="no-scrollbar flex-1 overflow-y-auto py-2">
           <div className="mb-6 mt-2 flex items-center gap-3 px-6">
-            <Link
-              href={CUSTOMER_ROUTES.order}
+            <button
+              onClick={() => router.back()}
               className="rounded-full p-1.5 text-[#05336b] transition-all hover:bg-slate-100"
             >
               <ArrowLeft size={20} strokeWidth={2.5} />
-            </Link>
+            </button>
             <h1 className="text-[32px] font-extrabold leading-none text-[#05336b]">
               Notification
             </h1>
@@ -82,7 +84,7 @@ export default function NotificationPage() {
               </div>
             ) : null}
 
-            {notifications.map((notif) => (
+            {!isError && notifications.map((notif) => (
               <div
                 key={notif.id}
                 className="relative w-full rounded-[24px] border border-blue-900 bg-white p-5 shadow-[0_8px_16px_rgba(5,51,107,0.15)] transition-all duration-300 hover:scale-[1.01]"
