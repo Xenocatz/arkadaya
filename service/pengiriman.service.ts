@@ -55,10 +55,21 @@ export interface PengirimanItem {
   asalLng: number | null;
   tujuanLat: number | null;
   tujuanLng: number | null;
+  currentLocation: string | null;
 }
 
 interface DetailPengirimanRow {
   estimasi_sampai?: string | null;
+}
+
+// Menyimpan riwayat tracking pengiriman
+interface TrackingPengirimanRow {
+  id_tracking?: number | null;
+  status?: string | null;
+  waktu?: string | null;
+  lokasi?: string | null;
+  keterangan?: string | null;
+  created_at?: string | null;
 }
 
 interface PengirimanRow {
@@ -83,6 +94,7 @@ interface PengirimanRow {
   tujuan_lat?: number | null;
   tujuan_lng?: number | null;
   detail_pengiriman?: DetailPengirimanRow | DetailPengirimanRow[] | null;
+  tracking_pengiriman?: TrackingPengirimanRow[] | null;
   updated_at?: string | null;
   created_at?: string | null;
 }
@@ -130,6 +142,20 @@ function getDetailPengirimanRow(row: PengirimanRow) {
   return row.detail_pengiriman ?? null;
 }
 
+// Mendapatkan lokasi tracking terbaru dari riwayat tracking pengiriman
+function getLatestTrackingLocation(row: PengirimanRow): string | null {
+  if (!row.tracking_pengiriman || row.tracking_pengiriman.length === 0) {
+    return null;
+  }
+  const sorted = [...row.tracking_pengiriman].sort((a, b) => {
+    return (
+      new Date(b.waktu ?? b.created_at ?? 0).getTime() -
+      new Date(a.waktu ?? a.created_at ?? 0).getTime()
+    );
+  });
+  return sorted[0]?.lokasi ?? null;
+}
+
 function mapPengiriman(row: PengirimanRow): PengirimanItem {
   const fallbackId =
     row.id ??
@@ -159,6 +185,7 @@ function mapPengiriman(row: PengirimanRow): PengirimanItem {
     asalLng: row.asal_lng ?? null,
     tujuanLat: row.tujuan_lat ?? null,
     tujuanLng: row.tujuan_lng ?? null,
+    currentLocation: getLatestTrackingLocation(row),
   };
 }
 
@@ -171,6 +198,14 @@ export async function getPengirimanList() {
     *,
     detail_pengiriman (
       estimasi_sampai
+    ),
+    tracking_pengiriman (
+      id_tracking,
+      status,
+      waktu,
+      lokasi,
+      keterangan,
+      created_at
     )
   `);
 

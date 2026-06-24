@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Eye,
   MapPin,
@@ -18,13 +19,34 @@ import {
   type DriverProfile,
 } from "@/service/driver.service";
 import {
+  getPengirimanList,
+  type PengirimanItem,
+} from "@/service/pengiriman.service";
+import {
   getUserFriendlyErrorMessage,
   logAppError,
 } from "@/utils/error-message";
+import { createClient } from "@/lib/supabase/client";
 
-export default function DriverPage() {
+function DriverPageContent() {
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
-  const [query, setQuery] = useState("");
+  // Menyimpan data pengiriman untuk melacak lokasi driver
+  const [shipments, setShipments] = useState<PengirimanItem[]>([]);
+  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const query = searchParams.get("search") || "";
+
+  const setQuery = (val: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (val) {
+      params.set("search", val);
+    } else {
+      params.delete("search");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedDriver, setSelectedDriver] = useState<DriverProfile | null>(
@@ -46,6 +68,7 @@ export default function DriverPage() {
     setError("");
 
     const result = await getDriverProfiles();
+    const shipmentResult = await getPengirimanList();
 
     if (!result.success) {
       setError(getUserFriendlyErrorMessage(result.error) || "Gagal memuat data driver.");
@@ -55,14 +78,18 @@ export default function DriverPage() {
     }
 
     setDrivers(result.data);
+    if (shipmentResult.success) {
+      setShipments(shipmentResult.data);
+    }
     setIsLoading(false);
   };
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadDrivers = async () => {
+    const loadData = async () => {
       const result = await getDriverProfiles();
+      const shipmentResult = await getPengirimanList();
 
       if (!isMounted) {
         return;
@@ -77,10 +104,13 @@ export default function DriverPage() {
 
       setError("");
       setDrivers(result.data);
+      if (shipmentResult.success) {
+        setShipments(shipmentResult.data);
+      }
       setIsLoading(false);
     };
 
-    void loadDrivers();
+    void loadData();
 
     return () => {
       isMounted = false;
@@ -89,20 +119,100 @@ export default function DriverPage() {
 
   const filteredDrivers = drivers.filter((driver) => {
     const keyword = query.toLowerCase();
-    return (
+    
+    // Cocokkan dengan data profile driver
+    const matchesDriver =
       driver.nama?.toLowerCase().includes(keyword) ||
       driver.email?.toLowerCase().includes(keyword) ||
-      driver.no_hp?.toLowerCase().includes(keyword)
-    );
+      driver.no_hp?.toLowerCase().includes(keyword);
+
+    if (matchesDriver) return true;
+
+    // Cocokkan dengan no resi atau tanggal pengiriman yang ditangani driver ini
+    if (driver.nama) {
+      const driverShipments = shipments.filter(
+        (s) => s.driver.trim().toLowerCase() === driver.nama!.trim().toLowerCase()
+      );
+      return driverShipments.some(
+        (s) =>
+          s.noResi.toLowerCase().includes(keyword) ||
+          s.update.toLowerCase().includes(keyword)
+      );
+    }
+
+    return false;
   });
 
-  // Membuka pencarian map berdasarkan nama driver yang dipilih
-  const handleOpenMap = (driver: DriverProfile) => {
-    const searchQuery = encodeURIComponent(driver.nama ?? "driver");
-    window.open(`https://www.google.com/maps/search/${searchQuery}`, "_blank");
+  // Membuka titik lokasi driver di Google Maps berdasarkan lokasi terkini yang dikirim dari HP/aplikasi driver (bukan titik jemput/antar)
+  const handleOpenMap = async (driver: DriverProfile) => {
+    if (!driver.nama) {
+      alert("Nama driver tidak valid.");
+      return;
+    }
+
+    // 1. Coba cari lokasi GPS koordinat presisi terlebih dahulu dari tabel driver_locations
+    const supabase = createClient();
+    const { data: gpsData } = await supabase
+      .from("driver_locations")
+      .select("latitude, longitude")
+      .eq("driver_id", parseInt(driver.id, 10))
+      .maybeSingle();
+
+    if (gpsData && gpsData.latitude && gpsData.longitude) {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${gpsData.latitude},${gpsData.longitude}`,
+        "_blank"
+      );
+      return;
+    }
+
+    // 2. Fallback: Jika data koordinat tidak ada, gunakan pencarian alamat teks riwayat status terakhir
+    const driverShipments = shipments.filter(
+      (s) => s.driver.trim().toLowerCase() === driver.nama!.trim().toLowerCase()
+    );
+
+    if (driverShipments.length === 0) {
+      alert(`Driver ${driver.nama} belum memiliki riwayat pengiriman.`);
+      return;
+    }
+
+    // Cari pengiriman yang aktif (Dalam Pengiriman, In Transit, Dalam Perjalanan, Pending)
+    const activeStatuses = ["dalam pengiriman", "in transit", "dalam perjalanan", "pending"];
+    const activeShipment = driverShipments.find((s) =>
+      activeStatuses.includes(s.status.trim().toLowerCase())
+    ) || driverShipments[0]; // Jika tidak ada yang aktif, gunakan yang terbaru
+
+    // Cek lokasi real-time kurir (dari tracking status terakhir yang dikirim dari HP/aplikasi driver)
+    if (activeShipment && activeShipment.currentLocation) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeShipment.currentLocation)}`, "_blank");
+    } else {
+      alert(`Lokasi terkini driver ${driver.nama} belum tersedia.`);
+    }
   };
 
-  const selectedDriverStatus = "Active";
+  // Menentukan data operasional driver yang dipilih untuk modal detail
+  const selectedDriverShipments = selectedDriver && selectedDriver.nama
+    ? shipments.filter(
+        (s) => s.driver.trim().toLowerCase() === selectedDriver.nama!.trim().toLowerCase()
+      )
+    : [];
+
+  const activeShipmentForSelected = selectedDriverShipments.find((s) =>
+    ["dalam pengiriman", "in transit", "dalam perjalanan", "pending"].includes(s.status.trim().toLowerCase())
+  ) || selectedDriverShipments[0]; // jika tidak ada yang aktif, ambil yang terbaru
+
+  const selectedDriverStatus = activeShipmentForSelected
+    ? `Active (${activeShipmentForSelected.status})`
+    : "Active (Idle)";
+
+  // Menampilkan lokasi terkini driver dari pelacakan aktif (aplikasi driver), jika tidak ada tampilkan tidak tersedia
+  const lastKnownLocation = activeShipmentForSelected && activeShipmentForSelected.currentLocation
+    ? activeShipmentForSelected.currentLocation
+    : "Tidak tersedia (belum diperbarui oleh driver)";
+
+  const lastUpdatedTime = activeShipmentForSelected
+    ? activeShipmentForSelected.update
+    : "-";
 
   // Membuka modal edit dan mengisi form dengan data driver yang dipilih
   const handleOpenEdit = () => {
@@ -378,13 +488,13 @@ export default function DriverPage() {
                   </div>
                   <div className="flex items-center flex-wrap gap-2">
                     <span className="text-gray-500 font-medium">
-                      Last Known Location
+                      Last Known Location :
                     </span>
                     <span className="text-gray-800 font-bold ml-1">
-                      Tidak tersedia
+                      {lastKnownLocation}
                     </span>
                     <span className="text-xs text-gray-400 font-normal ml-3">
-                      Last Updated - 
+                      Last Updated - {lastUpdatedTime}
                     </span>
                   </div>
                 </div>
@@ -499,5 +609,19 @@ export default function DriverPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function DriverPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="px-6 py-14 text-center text-sm text-gray-500">
+          Memuat data driver...
+        </div>
+      }
+    >
+      <DriverPageContent />
+    </Suspense>
   );
 }

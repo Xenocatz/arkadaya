@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   MapPin,
@@ -13,6 +14,7 @@ import {
   type PengirimanItem,
 } from "@/service/pengiriman.service";
 import { getUserFriendlyErrorMessage } from "@/utils/error-message";
+import { createClient } from "@/lib/supabase/client";
 
 const TrackingMap = dynamic(
   () => import("@/components/tracking/TrackingMap"),
@@ -69,13 +71,110 @@ function getStatusColor(status: string): string {
  * Halaman Lacak Paket.
  * Menampilkan daftar paket "On Progress" dengan status pengiriman real-time.
  */
-export default function LacakPaketPage() {
-  const [query, setQuery] = useState("");
+function LacakPaketContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const query = searchParams.get("search") || "";
+
+  const setQuery = (val: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (val) {
+      params.set("search", val);
+    } else {
+      params.delete("search");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
   const [dataLacak, setDataLacak] = useState<PengirimanItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedPengiriman, setSelectedPengiriman] =
     useState<PengirimanItem | null>(null);
+
+  // State untuk menyimpan lokasi koordinat terkini driver
+  const [driverLocation, setDriverLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    label?: string;
+  } | null>(null);
+
+  // Efek untuk memantau perubahan GPS driver secara real-time dari Supabase
+  useEffect(() => {
+    if (!selectedPengiriman || !selectedPengiriman.driver || selectedPengiriman.driver === "-") {
+      setDriverLocation(null);
+      return;
+    }
+
+    let isMounted = true;
+    const supabase = createClient();
+    let channel: any = null;
+
+    const setupDriverTracking = async () => {
+      // 1. Cari ID driver dari tabel profiles berdasarkan nama
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "driver")
+        .eq("nama", selectedPengiriman.driver)
+        .maybeSingle();
+
+      if (profileError || !profileData || !isMounted) {
+        return;
+      }
+
+      const driverId = profileData.id;
+
+      // 2. Ambil lokasi awal dari tabel driver_locations
+      const { data: locationData } = await supabase
+        .from("driver_locations")
+        .select("latitude, longitude")
+        .eq("driver_id", driverId)
+        .maybeSingle();
+
+      if (locationData && isMounted) {
+        setDriverLocation({
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          label: `Lokasi Terkini: ${selectedPengiriman.driver}`,
+        });
+      }
+
+      // 3. Berlangganan perubahan baris data secara realtime
+      channel = supabase
+        .channel(`driver-tracking-${driverId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "driver_locations",
+            filter: `driver_id=eq.${driverId}`,
+          },
+          (payload: any) => {
+            if (!isMounted) return;
+            const newRecord = payload.new;
+            if (newRecord && newRecord.latitude && newRecord.longitude) {
+              setDriverLocation({
+                latitude: newRecord.latitude,
+                longitude: newRecord.longitude,
+                label: `Lokasi Terkini: ${selectedPengiriman.driver}`,
+              });
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    void setupDriverTracking();
+
+    return () => {
+      isMounted = false;
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
+    };
+  }, [selectedPengiriman]);
 
   useEffect(() => {
     let isMounted = true;
@@ -116,7 +215,8 @@ export default function LacakPaketPage() {
     return (
       item.noResi.toLowerCase().includes(q) ||
       item.penerima.toLowerCase().includes(q) ||
-      item.driver.toLowerCase().includes(q)
+      item.driver.toLowerCase().includes(q) ||
+      item.update.toLowerCase().includes(q)
     );
   });
 
@@ -144,6 +244,7 @@ export default function LacakPaketPage() {
                   longitude: selectedPengiriman.tujuanLng ?? Number.NaN,
                   label: selectedPengiriman.alamat,
                 }}
+                driverLocation={driverLocation}
               />
             </div>
 
@@ -340,5 +441,19 @@ export default function LacakPaketPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LacakPaketPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="px-8 pb-6 text-sm text-gray-500">
+          Memuat data lacak paket...
+        </div>
+      }
+    >
+      <LacakPaketContent />
+    </Suspense>
   );
 }

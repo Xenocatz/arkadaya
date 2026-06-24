@@ -4,7 +4,12 @@ import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import { getDashboardData } from "@/service/dashboard.service";
 import { Package, Truck, CheckCircle, Clock } from "lucide-react";
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: {
+  searchParams: Promise<{ search?: string }>;
+}) {
+  const params = await props.searchParams;
+  const search = params.search ?? "";
+
   const {
     totalPengiriman,
     totalDalamPengiriman,
@@ -14,6 +19,21 @@ export default async function DashboardPage() {
     chartData,
     efficiency,
   } = await getDashboardData();
+
+  // Saring daftar pengiriman terbaru berdasarkan kata kunci pencarian
+  let filteredShipments = latestShipment;
+  if (search) {
+    const q = search.toLowerCase();
+    filteredShipments = latestShipment.filter((item) => {
+      return (
+        item.resi.toLowerCase().includes(q) ||
+        item.customer.toLowerCase().includes(q) ||
+        item.destination.toLowerCase().includes(q) ||
+        item.status.toLowerCase().includes(q) ||
+        item.date.toLowerCase().includes(q)
+      );
+    });
+  }
 
   return (
     <div className="space-y-8">
@@ -56,7 +76,7 @@ export default async function DashboardPage() {
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <ShipmentTable items={latestShipment} />
+          <ShipmentTable items={filteredShipments} />
         </div>
 
         <div className="lg:col-span-4">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Search, ChevronDown, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -34,8 +35,21 @@ function getStatusColor(status: StatusLaporan): string {
   }
 }
 
-export default function LaporanPage() {
-  const [query, setQuery] = useState("");
+function LaporanContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const query = searchParams.get("search") || "";
+
+  const setQuery = (val: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (val) {
+      params.set("search", val);
+    } else {
+      params.delete("search");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [laporan, setLaporan] = useState<LaporanItem[]>([]);
@@ -87,7 +101,8 @@ export default function LaporanPage() {
       item.noResi.toLowerCase().includes(keyword) ||
       item.pengirim.toLowerCase().includes(keyword) ||
       item.penerima.toLowerCase().includes(keyword) ||
-      item.driver.toLowerCase().includes(keyword);
+      item.driver.toLowerCase().includes(keyword) ||
+      item.tanggal.toLowerCase().includes(keyword);
 
     const cocokStatus =
       statusFilter === "Semua" || item.status === statusFilter;
@@ -370,5 +385,19 @@ export default function LaporanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LaporanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="px-6 py-14 text-center text-sm text-gray-500">
+          Memuat laporan...
+        </div>
+      }
+    >
+      <LaporanContent />
+    </Suspense>
   );
 }

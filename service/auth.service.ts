@@ -114,3 +114,17 @@ export async function getCurrentAuthProfile() {
 
   return { success: true, data };
 }
+
+export async function resetPasswordForEmail(email: string) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/reset-password`,
+  });
+
+  if (error) {
+    logAppError("Reset password for email failed", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data };
+}

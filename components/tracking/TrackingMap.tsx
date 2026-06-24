@@ -22,6 +22,7 @@ export interface TrackingMapPoint {
 interface TrackingMapProps {
   origin: TrackingMapPoint;
   destination: TrackingMapPoint;
+  driverLocation?: TrackingMapPoint | null;
 }
 
 function isValidCoordinate(value: number) {
@@ -51,22 +52,38 @@ function createMarkerIcon(backgroundColor: string) {
 const originIcon = createMarkerIcon("#111827");
 const destinationIcon = createMarkerIcon("#0a4a8a");
 
+// Ikon penanda posisi driver terkini dengan gambar truk/kendaraan
+const driverIcon = L.divIcon({
+  className: "custom-leaflet-driver-marker",
+  html: `
+    <div style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:9999px;background:#f07f1b;border:2px solid white;box-shadow:0 8px 18px rgba(15,23,42,0.18);">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><polyline points="14 18 17 18 22 13 22 9 14 9"/><circle cx="7.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/></svg>
+    </div>
+  `,
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+});
+
 function FitBounds({
   origin,
   destination,
+  driver,
 }: {
   origin: LatLngExpression;
   destination: LatLngExpression;
+  driver: LatLngExpression | null;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    const bounds: LatLngBoundsExpression = [origin, destination];
-    map.fitBounds(bounds, {
+    const bounds: LatLngExpression[] = driver
+      ? [origin, driver, destination]
+      : [origin, destination];
+    map.fitBounds(bounds as any, {
       padding: [60, 60],
       maxZoom: 15,
     });
-  }, [destination, map, origin]);
+  }, [destination, map, origin, driver]);
 
   return null;
 }
@@ -89,6 +106,7 @@ function FallbackMapState() {
 export default function TrackingMap({
   origin,
   destination,
+  driverLocation,
 }: TrackingMapProps) {
   if (!isValidPoint(origin) || !isValidPoint(destination)) {
     return <FallbackMapState />;
@@ -99,6 +117,11 @@ export default function TrackingMap({
     destination.latitude,
     destination.longitude,
   ];
+
+  const driverPosition: LatLngExpression | null =
+    driverLocation && isValidPoint(driverLocation)
+      ? [driverLocation.latitude, driverLocation.longitude]
+      : null;
 
   return (
     <div className="h-full w-full [&_.leaflet-container]:h-full [&_.leaflet-container]:w-full">
@@ -126,17 +149,52 @@ export default function TrackingMap({
           </Tooltip>
         </Marker>
 
-        <Polyline
-          positions={[originPosition, destinationPosition]}
-          pathOptions={{
-            color: "#05336b",
-            weight: 5,
-            opacity: 0.85,
-            dashArray: "10 8",
-          }}
-        />
+        {driverPosition ? (
+          <>
+            <Marker position={driverPosition} icon={driverIcon}>
+              <Tooltip direction="top" offset={[0, -12]}>
+                {driverLocation?.label ?? "Lokasi Kurir"}
+              </Tooltip>
+            </Marker>
 
-        <FitBounds origin={originPosition} destination={destinationPosition} />
+            {/* Rute yang sudah dilewati kurir (garis oranye tebal) */}
+            <Polyline
+              positions={[originPosition, driverPosition]}
+              pathOptions={{
+                color: "#f07f1b",
+                weight: 5,
+                opacity: 0.85,
+              }}
+            />
+
+            {/* Rute sisa yang harus ditempuh (garis biru putus-putus) */}
+            <Polyline
+              positions={[driverPosition, destinationPosition]}
+              pathOptions={{
+                color: "#05336b",
+                weight: 5,
+                opacity: 0.85,
+                dashArray: "10 8",
+              }}
+            />
+          </>
+        ) : (
+          <Polyline
+            positions={[originPosition, destinationPosition]}
+            pathOptions={{
+              color: "#05336b",
+              weight: 5,
+              opacity: 0.85,
+              dashArray: "10 8",
+            }}
+          />
+        )}
+
+        <FitBounds
+          origin={originPosition}
+          destination={destinationPosition}
+          driver={driverPosition}
+        />
       </MapContainer>
     </div>
   );

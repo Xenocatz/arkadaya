@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   MapPin,
@@ -19,8 +20,21 @@ import TambahPengirimanModal from "./tambah/TambahPengirimanModal";
 import { getUserFriendlyErrorMessage } from "@/utils/error-message";
 const statusOptions = ["Semua", "In Transit", "Terkirim", "Pending", "Selesai"];
 
-export default function PengirimanPage() {
-  const [query, setQuery] = useState("");
+function PengirimanContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const query = searchParams.get("search") || "";
+
+  const setQuery = (val: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (val) {
+      params.set("search", val);
+    } else {
+      params.delete("search");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,7 +102,8 @@ export default function PengirimanPage() {
       item.vendor.toLowerCase().includes(keyword) ||
       item.penerima.toLowerCase().includes(keyword) ||
       item.noTelpPenerima.toLowerCase().includes(keyword) ||
-      item.driver.toLowerCase().includes(keyword);
+      item.driver.toLowerCase().includes(keyword) ||
+      item.update.toLowerCase().includes(keyword);
     const cocokStatus =
       statusFilter === "Semua" || item.status === statusFilter;
 
@@ -442,5 +457,19 @@ export default function PengirimanPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function PengirimanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="px-6 py-14 text-center text-sm text-gray-500">
+          Memuat data pengiriman...
+        </div>
+      }
+    >
+      <PengirimanContent />
+    </Suspense>
   );
 }

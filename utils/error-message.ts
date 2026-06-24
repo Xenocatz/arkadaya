@@ -172,6 +172,10 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
     return "Nomor resi tidak ditemukan. Periksa kembali nomor resi Anda.";
   }
 
+  if (matches(message, [/email.*invalid/i, /invalid email/i, /email address.*is invalid/i])) {
+    return "Email tidak valid atau ditolak oleh server (pastikan email terdaftar dan SMTP Supabase aktif).";
+  }
+
   return DEFAULT_ERROR_MESSAGE;
 }
 

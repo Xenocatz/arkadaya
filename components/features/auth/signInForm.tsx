@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ForgotPasswordModal } from "@/components/features/auth/ForgotPasswordModal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { getProfileByEmail, signInUser } from "@/service/auth.service";
@@ -20,6 +21,7 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -110,15 +112,20 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
               </button>
             </div>
 
-            <div className="pt-1 text-center">
-              <span className="text-[11px] font-normal text-[#7a8c9e] transition-colors hover:text-[#0a315c]">
-                Forgot Password?
-              </span>
-            </div>
-
             {errorMessage ? (
               <p className="px-1 text-center text-sm font-semibold text-red-500">{errorMessage}</p>
             ) : null}
+
+            {/* Link lupa password */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-[13px] font-medium text-[#5091cd] transition-colors hover:text-[#0a315c] hover:underline"
+              >
+                Lupa Password?
+              </button>
+            </div>
           </div>
 
           <div className="space-y-6 pt-6">
@@ -138,6 +145,14 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
             </div>
           </div>
         </form>
+
+        {/* Modal lupa password untuk mobile */}
+        {showForgotPassword && (
+          <ForgotPasswordModal
+            mobile
+            onClose={() => setShowForgotPassword(false)}
+          />
+        )}
       </div>
     );
   }
@@ -159,15 +174,20 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
           required
         />
 
-        <div className="flex justify-end">
-          <span className="cursor-pointer text-sm text-black/50 hover:text-black">
-            Forgot Password?
-          </span>
-        </div>
-
         {errorMessage ? (
           <p className="text-sm font-semibold text-red-500">{errorMessage}</p>
         ) : null}
+
+        {/* Link lupa password */}
+        <div className="flex justify-end -mt-2">
+          <button
+            type="button"
+            onClick={() => setShowForgotPassword(true)}
+            className="text-sm font-medium text-[#5a94cc] transition-colors hover:text-[#0a2d5e] hover:underline"
+          >
+            Lupa Password?
+          </button>
+        </div>
 
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isSubmitting}>
@@ -184,6 +204,13 @@ export function SignInForm({ mobile = false }: SignInFormProps) {
           </span>
         </div>
       </form>
+
+      {/* Modal lupa password untuk desktop */}
+      {showForgotPassword && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgotPassword(false)}
+        />
+      )}
     </div>
   );
 }
