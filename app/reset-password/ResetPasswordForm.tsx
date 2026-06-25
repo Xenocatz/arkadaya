@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/Input";
@@ -10,16 +10,32 @@ import { getUserFriendlyErrorMessage } from "@/utils/error-message";
 export default function ResetPasswordForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const token = searchParams.get("token");
-    const type = searchParams.get("type");
+    const code = searchParams.get("code"); // ← ganti dari "token" ke "code"
 
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [sessionReady, setSessionReady] = useState(false); // ← tambah ini
 
     const supabase = createClient();
+
+    // Tukar code jadi session dulu sebelum form bisa dipakai
+    useEffect(() => {
+        if (!code) {
+            router.push("/");
+            return;
+        }
+
+        supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+            if (error) {
+                setError("Tautan pemulihan tidak valid atau sudah kadaluarsa.");
+            } else {
+                setSessionReady(true);
+            }
+        });
+    }, [code]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,10 +43,6 @@ export default function ResetPasswordForm() {
 
         if (password !== confirmPassword) {
             setError("Kata sandi tidak cocok.");
-            return;
-        }
-        if (!token || type !== "recovery") {
-            setError("Tautan pemulihan tidak valid.");
             return;
         }
 
@@ -49,6 +61,11 @@ export default function ResetPasswordForm() {
             setLoading(false);
         }
     };
+
+    // Tampilkan loading saat menukar code
+    if (!sessionReady && !error) {
+        return <p className="text-center text-gray-500">Memverifikasi tautan...</p>;
+    }
 
     return (
         <>

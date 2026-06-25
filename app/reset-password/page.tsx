@@ -1,4 +1,5 @@
-// Server Component – tidak ada "use client"
+
+
 import ResetPasswordForm from "./ResetPasswordForm";
 
 export const metadata = {
@@ -14,7 +15,7 @@ export default function ResetPasswordPage() {
         <h1 className="mb-6 text-center text-2xl font-bold text-[#0a315c]">
           Ubah Kata Sandi
         </h1>
-        {/* Komponen client yang menangani form */}
+        {/* Kompon yang menangani form */}
         <ResetPasswordForm />
       </div>
     </main>
